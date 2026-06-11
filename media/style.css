@@ -69,9 +69,30 @@ body {
 }
 
 .cell.head {
+  position: relative;
   font-weight: 600;
   background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
   border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35));
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+  box-shadow: inset -2px 0 0 var(--vscode-focusBorder, #007fd4);
+}
+
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .cell.num {

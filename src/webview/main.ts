@@ -6,7 +6,8 @@ const vscode = acquireVsCodeApi();
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 10;
-const MIN_COL_WIDTH = 60;
+const MIN_COL_WIDTH = 40;
+const AUTO_MIN_COL_WIDTH = 60;
 const MAX_COL_WIDTH = 420;
 const MAX_CACHED_CHUNKS = 64;
 
@@ -19,6 +20,8 @@ let columns: string[] = [];
 let rowCount = 0;
 let gridTemplate = '';
 let numericCols: boolean[] = [];
+let colWidths: number[] = [];
+let rowNumWidth = 46;
 
 const chunks = new Map<number, string[][]>();
 const pendingChunks = new Set<number>();
@@ -52,7 +55,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
 });
 
 let renderQueued = false;
-scroller.addEventListener('scroll', () => {
+function scheduleRender(): void {
   if (!renderQueued) {
     renderQueued = true;
     requestAnimationFrame(() => {
@@ -60,12 +63,13 @@ scroller.addEventListener('scroll', () => {
       render();
     });
   }
-});
+}
+scroller.addEventListener('scroll', scheduleRender);
 window.addEventListener('resize', () => render());
 
 function initLayout(sample: string[][]): void {
   const numberPattern = /^-?(\d+([.,]\d+)?|[.,]\d+)([eE][+-]?\d+)?$/;
-  const widths: number[] = [];
+  colWidths = [];
   numericCols = [];
 
   for (let c = 0; c < columns.length; c++) {
@@ -86,17 +90,12 @@ function initLayout(sample: string[][]): void {
     }
     numericCols.push(nonEmptySeen && numeric);
     // ~8px per character plus cell padding; clamped to keep huge text columns usable.
-    widths.push(Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, maxChars * 8 + 18)));
+    colWidths.push(Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, maxChars * 8 + 18)));
   }
 
-  const rowNumWidth = Math.max(46, String(rowCount).length * 8 + 22);
-  gridTemplate = `${rowNumWidth}px ${widths.map((w) => `${w}px`).join(' ')}`;
-  const totalWidth = rowNumWidth + widths.reduce((a, b) => a + b, 0);
+  rowNumWidth = Math.max(46, String(rowCount).length * 8 + 22);
 
-  headerEl.style.gridTemplateColumns = gridTemplate;
-  headerEl.style.width = `${totalWidth}px`;
   headerEl.replaceChildren();
-
   const corner = document.createElement('div');
   corner.className = 'cell rownum corner';
   headerEl.appendChild(corner);
@@ -105,11 +104,70 @@ function initLayout(sample: string[][]): void {
     cell.className = numericCols[c] ? 'cell head num' : 'cell head';
     cell.textContent = columns[c];
     cell.title = columns[c];
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    handle.addEventListener('pointerdown', (e) => startResize(e, c));
+    handle.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      autoFit(c);
+    });
+    cell.appendChild(handle);
     headerEl.appendChild(cell);
   }
 
-  bodyEl.style.height = `${rowCount * ROW_HEIGHT}px`;
+  applyLayout();
+}
+
+function applyLayout(): void {
+  gridTemplate = `${rowNumWidth}px ${colWidths.map((w) => `${w}px`).join(' ')}`;
+  const totalWidth = rowNumWidth + colWidths.reduce((a, b) => a + b, 0);
+  headerEl.style.gridTemplateColumns = gridTemplate;
+  headerEl.style.width = `${totalWidth}px`;
   bodyEl.style.width = `${totalWidth}px`;
+  bodyEl.style.height = `${rowCount * ROW_HEIGHT}px`;
+}
+
+function startResize(event: PointerEvent, col: number): void {
+  event.preventDefault();
+  event.stopPropagation();
+  const handle = event.target as HTMLElement;
+  const startX = event.clientX;
+  const startWidth = colWidths[col];
+  handle.setPointerCapture(event.pointerId);
+  handle.classList.add('active');
+  document.body.classList.add('resizing');
+
+  const onMove = (e: PointerEvent) => {
+    colWidths[col] = Math.max(MIN_COL_WIDTH, startWidth + (e.clientX - startX));
+    applyLayout();
+    scheduleRender();
+  };
+  const onUp = () => {
+    handle.removeEventListener('pointermove', onMove);
+    handle.removeEventListener('pointerup', onUp);
+    handle.removeEventListener('pointercancel', onUp);
+    handle.classList.remove('active');
+    document.body.classList.remove('resizing');
+  };
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+  handle.addEventListener('pointercancel', onUp);
+}
+
+/** Double-click on a handle: fit the column to its header and cached rows. */
+function autoFit(col: number): void {
+  let maxChars = columns[col].length;
+  for (const rows of chunks.values()) {
+    for (const row of rows) {
+      const len = (row[col] ?? '').length;
+      if (len > maxChars) {
+        maxChars = len;
+      }
+    }
+  }
+  colWidths[col] = Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, maxChars * 8 + 18));
+  applyLayout();
+  render();
 }
 
 function render(): void {
