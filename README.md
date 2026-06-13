@@ -76,8 +76,13 @@ identical behavior for files and variables.
 
 ## Ideas for later
 
+- Heatmap-like background color with selectable color map and settings (vmin, vmax, center)
 - Sorting and filtering
 - Parquet / Excel / JSON Lines support
 - Column statistics and type inference
 - Header on/off toggle, encoding selection
-- Live reload when the file changes on disk
+
+## Tests to try
+
+- DateTime column and index
+- MultiIndex

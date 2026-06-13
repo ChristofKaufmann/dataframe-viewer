@@ -53,7 +53,13 @@ body {
   background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
 }
 
-.row:hover .cell {
+/*
+ * Hover must override both the base background and the zebra stripe on every
+ * cell. The second selector outranks the stripe rule above (it has the same
+ * classes plus :hover), so alt-row data cells highlight too.
+ */
+.row:hover .cell,
+.row.alt:hover .cell:not(.indexcol) {
   background: var(--vscode-list-hoverBackground);
 }
 
