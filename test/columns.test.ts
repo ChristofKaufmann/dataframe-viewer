@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   AUTO_MIN_COL_WIDTH,
   autoWidth,
+  CELL_PADDING_PX,
   cellClass,
+  CHAR_PX,
   clampDragWidth,
   HEADER_WIDTH_FACTOR,
   isNumericColumn,
@@ -37,7 +39,7 @@ test('maxChars weights the bold header but counts values at face value', () => {
 test('autoWidth clamps to the auto min/max bounds', () => {
   assert.equal(autoWidth(0), AUTO_MIN_COL_WIDTH);
   assert.equal(autoWidth(1000), MAX_COL_WIDTH);
-  assert.equal(autoWidth(10), 10 * 8 + 18);
+  assert.equal(autoWidth(10), 10 * CHAR_PX + CELL_PADDING_PX);
 });
 
 test('clampDragWidth enforces only the hard minimum (no upper cap)', () => {

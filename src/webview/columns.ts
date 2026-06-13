@@ -48,12 +48,19 @@ export function maxChars(header: string, values: Iterable<string>): number {
   return longest;
 }
 
+// Approximate rendered width of one monospace cell character, plus the cell's
+// horizontal padding/border. CHAR_PX is a touch above the real glyph advance
+// (~8.4px at the default 14px editor font) so values don't clip; bump it if a
+// larger editor font still ellipsizes.
+export const CHAR_PX = 9;
+export const CELL_PADDING_PX = 18;
+
 /**
- * Auto-fit width for a column: ~8px per character plus cell padding, clamped
- * so empty columns stay clickable and very wide text columns stay usable.
+ * Auto-fit width for a column: per-character estimate plus cell padding,
+ * clamped so empty columns stay clickable and very wide text columns stay usable.
  */
 export function autoWidth(chars: number): number {
-  return Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, chars * 8 + 18));
+  return Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, chars * CHAR_PX + CELL_PADDING_PX));
 }
 
 /** Width during an interactive drag — only the hard minimum is enforced. */
