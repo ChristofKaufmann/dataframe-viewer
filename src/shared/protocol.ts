@@ -8,7 +8,9 @@ export const CHUNK_SIZE = 500;
 export type WebviewMessage =
   | { type: 'ready'; colormap?: string }
   | { type: 'refresh'; colormap?: string }
-  | { type: 'rows'; chunk: number };
+  | { type: 'rows'; chunk: number }
+  /** Persist heatmap UI choices so they carry over to the next view. */
+  | { type: 'settings'; enabled: boolean; colormap: string };
 
 /** Extension host -> webview */
 export type HostMessage =

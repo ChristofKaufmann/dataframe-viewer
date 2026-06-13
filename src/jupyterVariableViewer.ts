@@ -109,7 +109,7 @@ async function openVariable(
     vscode.ViewColumn.Active,
     { retainContextWhenHidden: true }
   );
-  const subscription = configureTableWebview(panel.webview, context.extensionUri, load);
+  const subscription = configureTableWebview(panel.webview, context, load);
   panel.onDidDispose(() => subscription.dispose());
 }
 

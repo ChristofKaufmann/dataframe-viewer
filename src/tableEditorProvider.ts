@@ -35,7 +35,7 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
   }
 
   resolveCustomEditor(document: TableDocument, webviewPanel: vscode.WebviewPanel): void {
-    configureTableWebview(webviewPanel.webview, this.context.extensionUri, (options) =>
+    configureTableWebview(webviewPanel.webview, this.context, (options) =>
       this.loadData(document.uri, options)
     );
   }

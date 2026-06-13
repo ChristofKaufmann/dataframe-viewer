@@ -1,7 +1,16 @@
 import * as vscode from 'vscode';
+import { getHeatmapSettings, HeatmapSettings, updateHeatmapSettings } from './heatmapSettings';
 import { createTableHost, LoadOptions, TableData } from './tableHost';
+import { WebviewMessage } from './shared/protocol';
 
 export { LoadOptions, TableData } from './tableHost';
+
+// Colormaps offered in the heatmap settings popover (matplotlib names).
+const COLORMAP_GROUPS: { label: string; names: string[] }[] = [
+  { label: 'Perceptually uniform', names: ['viridis', 'plasma', 'inferno', 'magma', 'cividis'] },
+  { label: 'Sequential', names: ['Blues', 'Greens', 'Oranges', 'Greys'] },
+  { label: 'Diverging', names: ['coolwarm', 'RdBu', 'Spectral', 'bwr'] },
+];
 
 /**
  * Points a webview at the bundled table renderer and serves it rows in
@@ -9,20 +18,22 @@ export { LoadOptions, TableData } from './tableHost';
  *
  * `load` re-reads the original data source (file or kernel variable); it runs
  * once when the webview is ready and again whenever the user clicks refresh.
+ * Heatmap UI choices are seeded from (and saved back to) the extension's
+ * global state so they persist across views.
  */
 export function configureTableWebview(
   webview: vscode.Webview,
-  extensionUri: vscode.Uri,
+  context: vscode.ExtensionContext,
   load: (options: LoadOptions) => Promise<TableData>
 ): vscode.Disposable {
   webview.options = {
     enableScripts: true,
     localResourceRoots: [
-      vscode.Uri.joinPath(extensionUri, 'dist'),
-      vscode.Uri.joinPath(extensionUri, 'media'),
+      vscode.Uri.joinPath(context.extensionUri, 'dist'),
+      vscode.Uri.joinPath(context.extensionUri, 'media'),
     ],
   };
-  webview.html = getHtml(webview, extensionUri);
+  webview.html = getHtml(webview, context.extensionUri, getHeatmapSettings(context));
 
   const handle = createTableHost({
     load,
@@ -30,15 +41,37 @@ export function configureTableWebview(
     reportError: (message) => void vscode.window.showErrorMessage(`Data Viewer: ${message}`),
   });
 
-  return webview.onDidReceiveMessage(handle);
+  return webview.onDidReceiveMessage((message: WebviewMessage) => {
+    if (message.type === 'settings') {
+      void updateHeatmapSettings(context, { enabled: message.enabled, colormap: message.colormap });
+      return;
+    }
+    handle(message);
+  });
 }
 
-function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+function getHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+  settings: HeatmapSettings
+): string {
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'main.js')
   );
   const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'style.css'));
   const nonce = getNonce();
+
+  const colormapOptions = COLORMAP_GROUPS.map(
+    (group) =>
+      `<optgroup label="${group.label}">` +
+      group.names
+        .map(
+          (name) =>
+            `<option value="${name}"${name === settings.colormap ? ' selected' : ''}>${name}</option>`
+        )
+        .join('') +
+      `</optgroup>`
+  ).join('');
 
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -54,34 +87,14 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
     <label id="heatmap-toggle" title="Color numeric cells by value">
-      <input type="checkbox" id="heatmap" checked> Heatmap
+      <input type="checkbox" id="heatmap"${settings.enabled ? ' checked' : ''}> Heatmap
     </label>
     <div id="heatmap-menu">
       <button id="heatmap-settings" title="Heatmap settings" aria-expanded="false" aria-haspopup="true">⚙</button>
       <div id="heatmap-panel" role="dialog" aria-label="Heatmap settings" hidden>
         <label class="field">
           <span>Colormap</span>
-          <select id="colormap">
-            <optgroup label="Perceptually uniform">
-              <option value="viridis">viridis</option>
-              <option value="plasma">plasma</option>
-              <option value="inferno">inferno</option>
-              <option value="magma">magma</option>
-              <option value="cividis">cividis</option>
-            </optgroup>
-            <optgroup label="Sequential">
-              <option value="Blues">Blues</option>
-              <option value="Greens">Greens</option>
-              <option value="Oranges">Oranges</option>
-              <option value="Greys">Greys</option>
-            </optgroup>
-            <optgroup label="Diverging">
-              <option value="coolwarm">coolwarm</option>
-              <option value="RdBu">RdBu</option>
-              <option value="Spectral">Spectral</option>
-              <option value="bwr">bwr</option>
-            </optgroup>
-          </select>
+          <select id="colormap">${colormapOptions}</select>
         </label>
       </div>
     </div>

@@ -15,8 +15,9 @@ in the spirit of Data Wrangler but starting small.
   by value. Colors are computed in pandas/matplotlib with a single vmin/vmax over
   all numeric values; non-numeric and NaN cells are left uncolored. A gear button
   opens a settings popover with a **colormap** selector (viridis, plasma, coolwarm,
-  …); changing it recomputes colors in Python on reload. (`HEATMAP_CMAP` in
-  `pandasTable.ts` sets the default.)
+  …); changing it recomputes colors in Python on reload. The on/off and colormap
+  choices are remembered (extension global state) and carry over to the next view.
+  (`HEATMAP_CMAP` in `pandasTable.ts` sets the default.)
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
 - Toolbar with a **refresh** button that reloads from the original source (re-runs
   `read_csv` for files, re-queries the kernel for variables — picking up edits and
@@ -82,6 +83,8 @@ extension loaded, then open `sample-data/cities.csv` with it.
   dump code with `pd.read_csv` in a Python subprocess
 - `src/pythonRunner.ts` — resolves the interpreter (Python extension API,
   fallback `python3`) and runs scripts
+- `src/heatmapSettings.ts` — reads/writes the persisted heatmap on/off and
+  colormap in the extension's global state
 - `src/tableWebview.ts` — wires a real webview to the table host (HTML, CSP,
   `postMessage`, error notifications)
 - `src/tableHost.ts` — the webview message loop (load/refresh/serve chunks),

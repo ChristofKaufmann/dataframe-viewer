@@ -103,15 +103,22 @@ function setRefreshing(on: boolean): void {
   refreshBtn.classList.toggle('spinning', on);
 }
 
+// Persist heatmap choices so the next view inherits them.
+function persistSettings(): void {
+  vscode.postMessage({ type: 'settings', enabled: heatmap, colormap: currentColormap });
+}
+
 // Heatmap on/off is a local re-render; the colors are already loaded.
 heatmapCheckbox.addEventListener('change', () => {
   heatmap = heatmapCheckbox.checked;
+  persistSettings();
   render();
 });
 
 // Changing the colormap recomputes colors in Python, so it needs a reload.
 colormapSelect.addEventListener('change', () => {
   currentColormap = colormapSelect.value;
+  persistSettings();
   requestReload();
 });
 
