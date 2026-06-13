@@ -12,6 +12,9 @@ in the spirit of Data Wrangler but starting small.
   DataFrames viewed from a kernel
 
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
+- Toolbar with a **refresh** button that reloads from the original source (re-runs
+  `read_csv` for files, re-queries the kernel for variables — picking up edits and
+  surviving a kernel restart)
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
 - The DataFrame index is shown as the leftmost column, labelled with the index

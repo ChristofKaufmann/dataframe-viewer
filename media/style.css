@@ -9,9 +9,66 @@ body {
   background: var(--vscode-editor-background);
 }
 
+#toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 29px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
+  border-bottom: 1px solid var(--vscode-editorGroup-border, transparent);
+}
+
+#refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#refresh:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+#refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+#refresh .icon {
+  display: inline-block;
+}
+
+#refresh.spinning .icon {
+  animation: dv-spin 0.8s linear infinite;
+}
+
+@keyframes dv-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 #scroller {
   position: absolute;
-  inset: 0 0 23px 0;
+  inset: 29px 0 23px 0;
   overflow: auto;
 }
 

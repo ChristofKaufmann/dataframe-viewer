@@ -13,11 +13,14 @@ export interface TableData {
 /**
  * Points a webview at the bundled table renderer and serves it rows in
  * chunks. Shared by the CSV custom editor and the Jupyter variable viewer.
+ *
+ * `load` re-reads the original data source (file or kernel variable); it runs
+ * once when the webview is ready and again whenever the user clicks refresh.
  */
 export function configureTableWebview(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  data: TableData
+  load: () => Promise<TableData>
 ): vscode.Disposable {
   webview.options = {
     enableScripts: true,
@@ -28,19 +31,43 @@ export function configureTableWebview(
   };
   webview.html = getHtml(webview, extensionUri);
 
+  let data: TableData | undefined;
+  let busy = false;
+
+  const reload = async (): Promise<void> => {
+    if (busy) {
+      return;
+    }
+    busy = true;
+    try {
+      data = await load();
+      post(webview, {
+        type: 'init',
+        fileName: data.fileName,
+        note: data.note,
+        columns: data.columns,
+        rowCount: data.rows.length,
+        sample: data.rows.slice(0, 100),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      void vscode.window.showErrorMessage(`Data Viewer: ${message}`);
+      post(webview, { type: 'error', message });
+    } finally {
+      busy = false;
+    }
+  };
+
   return webview.onDidReceiveMessage((message: WebviewMessage) => {
     switch (message.type) {
       case 'ready':
-        post(webview, {
-          type: 'init',
-          fileName: data.fileName,
-          note: data.note,
-          columns: data.columns,
-          rowCount: data.rows.length,
-          sample: data.rows.slice(0, 100),
-        });
+      case 'refresh':
+        void reload();
         break;
       case 'rows': {
+        if (!data) {
+          return;
+        }
         const start = message.chunk * CHUNK_SIZE;
         post(webview, {
           type: 'rows',
@@ -75,6 +102,9 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   <title>Data Viewer</title>
 </head>
 <body>
+  <div id="toolbar">
+    <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
+  </div>
   <div id="scroller">
     <div id="header"></div>
     <div id="body"></div>

@@ -7,6 +7,7 @@ export const CHUNK_SIZE = 500;
 /** Webview -> extension host */
 export type WebviewMessage =
   | { type: 'ready' }
+  | { type: 'refresh' }
   | { type: 'rows'; chunk: number };
 
 /** Extension host -> webview */
@@ -21,4 +22,5 @@ export type HostMessage =
       /** First rows, used for column width/type estimation and initial paint. */
       sample: string[][];
     }
-  | { type: 'rows'; chunk: number; rows: string[][] };
+  | { type: 'rows'; chunk: number; rows: string[][] }
+  | { type: 'error'; message: string };

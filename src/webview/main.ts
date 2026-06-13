@@ -13,6 +13,7 @@ const scroller = document.getElementById('scroller')!;
 const headerEl = document.getElementById('header')!;
 const bodyEl = document.getElementById('body')!;
 const statusEl = document.getElementById('status')!;
+const refreshBtn = document.getElementById('refresh') as HTMLButtonElement;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -28,7 +29,11 @@ const pendingChunks = new Set<number>();
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
   switch (message.type) {
-    case 'init':
+    case 'init': {
+      // Drop any cached rows from the previous load — a refresh may have
+      // changed the data underneath us.
+      chunks.clear();
+      pendingChunks.clear();
       columns = message.columns;
       rowCount = message.rowCount;
       initLayout(message.sample);
@@ -44,16 +49,36 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
           ? 'Empty'
           : `${rowCount.toLocaleString()} rows × ${dataCols.toLocaleString()} columns` +
             (message.note ? ` — ${message.note}` : '');
+      setRefreshing(false);
       render();
       break;
+    }
     case 'rows':
       pendingChunks.delete(message.chunk);
       chunks.set(message.chunk, message.rows);
       evictDistantChunks(message.chunk);
       render();
       break;
+    case 'error':
+      statusEl.textContent = `⚠ ${message.message}`;
+      setRefreshing(false);
+      break;
   }
 });
+
+refreshBtn.addEventListener('click', () => {
+  if (refreshBtn.disabled) {
+    return;
+  }
+  setRefreshing(true);
+  vscode.postMessage({ type: 'refresh' });
+});
+
+/** Toggles the refresh button's spinner/disabled state. */
+function setRefreshing(on: boolean): void {
+  refreshBtn.disabled = on;
+  refreshBtn.classList.toggle('spinning', on);
+}
 
 let renderQueued = false;
 function scheduleRender(): void {
@@ -209,4 +234,5 @@ function evictDistantChunks(currentChunk: number): void {
   }
 }
 
+setRefreshing(true);
 vscode.postMessage({ type: 'ready' });

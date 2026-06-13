@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Jupyter, Kernel } from '@vscode/jupyter-extension';
 import { buildDumpCode, DumpPayload, parsePayload, toTable } from './pandasTable';
-import { configureTableWebview } from './tableWebview';
+import { configureTableWebview, TableData } from './tableWebview';
 
 /**
  * Shape of the argument the Jupyter extension passes to a contributed
@@ -70,37 +70,47 @@ async function openVariable(
   }
   const api = await jupyterExt.activate();
 
-  const kernel = await api.kernels.getKernel(notebook.uri);
-  if (!kernel) {
-    throw new Error('No running kernel found for the notebook. Run a cell first.');
-  }
-  if (kernel.language !== 'python') {
-    throw new Error(`Only Python kernels are supported for now (got "${kernel.language}").`);
-  }
+  const variableName = variable.name;
+  const notebookName = notebook.uri.path.split('/').pop() ?? 'notebook';
 
-  const payload = await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: `Data Viewer: loading "${variable.name}"…`,
-      cancellable: true,
-    },
-    (_progress, token) => fetchVariable(kernel, variable.name, token)
-  );
-
-  const { columns, rows, note } = toTable(payload);
+  // Re-acquired on every (re)load so refresh picks up the current value and
+  // survives a kernel restart.
+  const load = async (): Promise<TableData> => {
+    const kernel = await api.kernels.getKernel(notebook.uri);
+    if (!kernel) {
+      throw new Error('No running kernel found for the notebook. Run a cell first.');
+    }
+    if (kernel.language !== 'python') {
+      throw new Error(`Only Python kernels are supported for now (got "${kernel.language}").`);
+    }
+    try {
+      const payload = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Data Viewer: loading "${variableName}"…`,
+          cancellable: true,
+        },
+        (_progress, token) => fetchVariable(kernel, variableName, token)
+      );
+      const { columns, rows, note } = toTable(payload);
+      return { fileName: `${variableName} — ${notebookName}`, columns, rows, note };
+    } catch (err) {
+      if (err instanceof Error && err.name === 'vscode.jupyter.apiAccessRevoked') {
+        throw new Error(
+          'Data Viewer was denied access to Jupyter kernels. Run "Jupyter: Manage Access To Jupyter Kernels" to change this.'
+        );
+      }
+      throw err;
+    }
+  };
 
   const panel = vscode.window.createWebviewPanel(
     'dataViewer.variableTable',
-    variable.name,
+    variableName,
     vscode.ViewColumn.Active,
     { retainContextWhenHidden: true }
   );
-  const subscription = configureTableWebview(panel.webview, context.extensionUri, {
-    fileName: `${variable.name} — ${notebook.uri.path.split('/').pop() ?? 'notebook'}`,
-    note,
-    columns,
-    rows,
-  });
+  const subscription = configureTableWebview(panel.webview, context.extensionUri, load);
   panel.onDidDispose(() => subscription.dispose());
 }
 

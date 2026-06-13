@@ -6,15 +6,10 @@ import {
   runPythonScript,
   selectInterpreter,
 } from './pythonRunner';
-import { configureTableWebview } from './tableWebview';
+import { configureTableWebview, TableData } from './tableWebview';
 
 class TableDocument implements vscode.CustomDocument {
-  constructor(
-    readonly uri: vscode.Uri,
-    readonly columns: string[],
-    readonly rows: string[][],
-    readonly note?: string
-  ) {}
+  constructor(readonly uri: vscode.Uri) {}
 
   dispose(): void {}
 }
@@ -35,19 +30,32 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
-  async openCustomDocument(
-    uri: vscode.Uri,
-    _openContext: vscode.CustomDocumentOpenContext,
-    token: vscode.CancellationToken
-  ): Promise<TableDocument> {
-    // Files go through pandas.read_csv in the selected Python interpreter, so
-    // they behave exactly like DataFrames viewed from a Jupyter kernel.
+  openCustomDocument(uri: vscode.Uri): TableDocument {
+    return new TableDocument(uri);
+  }
+
+  resolveCustomEditor(document: TableDocument, webviewPanel: vscode.WebviewPanel): void {
+    configureTableWebview(webviewPanel.webview, this.context.extensionUri, () =>
+      this.loadData(document.uri)
+    );
+  }
+
+  /**
+   * Reads the file via pandas.read_csv in the selected Python interpreter so
+   * it behaves exactly like a DataFrame viewed from a kernel. If the
+   * environment lacks pandas, offers to switch interpreter and retries.
+   */
+  private async loadData(uri: vscode.Uri): Promise<TableData> {
+    const name = uri.path.split('/').pop() ?? '';
     const code = buildDumpCode(csvReadExpression(uri.fsPath));
     for (;;) {
       try {
-        const stdout = await runPythonScript(code, uri, token);
+        const stdout = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Window, title: `Data Viewer: loading ${name}…` },
+          (_progress, token) => runPythonScript(code, uri, token)
+        );
         const { columns, rows, note } = toTable(parsePayload(stdout));
-        return new TableDocument(uri, columns, rows, note);
+        return { fileName: name, columns, rows, note };
       } catch (err) {
         if (!(err instanceof PythonEnvironmentError) || !canSelectInterpreter()) {
           throw err;
@@ -62,14 +70,5 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
         await selectInterpreter();
       }
     }
-  }
-
-  resolveCustomEditor(document: TableDocument, webviewPanel: vscode.WebviewPanel): void {
-    configureTableWebview(webviewPanel.webview, this.context.extensionUri, {
-      fileName: document.uri.path.split('/').pop() ?? '',
-      note: document.note,
-      columns: document.columns,
-      rows: document.rows,
-    });
   }
 }
