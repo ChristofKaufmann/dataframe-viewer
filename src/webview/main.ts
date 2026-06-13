@@ -23,6 +23,11 @@ let gridTemplate = '';
 let numericCols: boolean[] = [];
 let colWidths: number[] = [];
 
+// Widths the user set explicitly (drag or auto-fit), keyed by column header so
+// they survive a refresh even if columns are added/removed/reordered. Columns
+// not in here keep auto-fitting to their content on each (re)load.
+const manualWidths = new Map<string, number>();
+
 const chunks = new Map<number, string[][]>();
 const pendingChunks = new Set<number>();
 
@@ -100,7 +105,8 @@ function initLayout(sample: string[][]): void {
   for (let c = 0; c < columns.length; c++) {
     const values = sample.map((row) => row[c] ?? '');
     numericCols.push(isNumericColumn(values));
-    colWidths.push(autoWidth(maxChars(columns[c], values)));
+    const manual = manualWidths.get(columns[c]);
+    colWidths.push(manual ?? autoWidth(maxChars(columns[c], values)));
   }
 
   headerEl.replaceChildren();
@@ -157,6 +163,7 @@ function startResize(event: PointerEvent, col: number): void {
     handle.removeEventListener('pointercancel', onUp);
     handle.classList.remove('active');
     document.body.classList.remove('resizing');
+    manualWidths.set(columns[col], colWidths[col]);
   };
   handle.addEventListener('pointermove', onMove);
   handle.addEventListener('pointerup', onUp);
@@ -175,6 +182,7 @@ function autoFit(col: number): void {
     }
   }
   colWidths[col] = autoWidth(longest);
+  manualWidths.set(columns[col], colWidths[col]);
   applyLayout();
   render();
 }
