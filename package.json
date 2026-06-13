@@ -81,6 +81,7 @@
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
@@ -89,6 +90,7 @@
     "@vscode/jupyter-extension": "^1.1.1",
     "@vscode/python-extension": "^1.0.6",
     "esbuild": "^0.28.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.4.0"
   }
 }

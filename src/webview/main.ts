@@ -1,4 +1,5 @@
 import { CHUNK_SIZE, HostMessage, WebviewMessage } from '../shared/protocol';
+import { autoWidth, cellClass, clampDragWidth, isNumericColumn, maxChars } from './columns';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -6,9 +7,6 @@ const vscode = acquireVsCodeApi();
 
 const ROW_HEIGHT = 24;
 const OVERSCAN = 10;
-const MIN_COL_WIDTH = 40;
-const AUTO_MIN_COL_WIDTH = 60;
-const MAX_COL_WIDTH = 420;
 const MAX_CACHED_CHUNKS = 64;
 
 const scroller = document.getElementById('scroller')!;
@@ -71,35 +69,19 @@ scroller.addEventListener('scroll', scheduleRender);
 window.addEventListener('resize', () => render());
 
 function initLayout(sample: string[][]): void {
-  const numberPattern = /^-?(\d+([.,]\d+)?|[.,]\d+)([eE][+-]?\d+)?$/;
   colWidths = [];
   numericCols = [];
 
   for (let c = 0; c < columns.length; c++) {
-    let maxChars = columns[c].length;
-    let numeric = true;
-    let nonEmptySeen = false;
-    for (const row of sample) {
-      const value = row[c] ?? '';
-      if (value.length > maxChars) {
-        maxChars = value.length;
-      }
-      if (value !== '') {
-        nonEmptySeen = true;
-        if (!numberPattern.test(value.trim())) {
-          numeric = false;
-        }
-      }
-    }
-    numericCols.push(nonEmptySeen && numeric);
-    // ~8px per character plus cell padding; clamped to keep huge text columns usable.
-    colWidths.push(Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, maxChars * 8 + 18)));
+    const values = sample.map((row) => row[c] ?? '');
+    numericCols.push(isNumericColumn(values));
+    colWidths.push(autoWidth(maxChars(columns[c], values)));
   }
 
   headerEl.replaceChildren();
   for (let c = 0; c < columns.length; c++) {
     const cell = document.createElement('div');
-    cell.className = cellClass('cell head', c);
+    cell.className = classFor('cell head', c);
     cell.textContent = columns[c];
     cell.title = columns[c];
     const handle = document.createElement('div');
@@ -116,16 +98,8 @@ function initLayout(sample: string[][]): void {
   applyLayout();
 }
 
-/** Builds a cell class string, marking column 0 as the sticky index column. */
-function cellClass(base: string, col: number): string {
-  let cls = base;
-  if (numericCols[col]) {
-    cls += ' num';
-  }
-  if (col === 0) {
-    cls += base.includes('head') ? ' indexcol corner' : ' indexcol';
-  }
-  return cls;
+function classFor(base: string, col: number): string {
+  return cellClass(base, { index: col === 0, numeric: numericCols[col] });
 }
 
 function applyLayout(): void {
@@ -148,7 +122,7 @@ function startResize(event: PointerEvent, col: number): void {
   document.body.classList.add('resizing');
 
   const onMove = (e: PointerEvent) => {
-    colWidths[col] = Math.max(MIN_COL_WIDTH, startWidth + (e.clientX - startX));
+    colWidths[col] = clampDragWidth(startWidth + (e.clientX - startX));
     applyLayout();
     scheduleRender();
   };
@@ -166,16 +140,16 @@ function startResize(event: PointerEvent, col: number): void {
 
 /** Double-click on a handle: fit the column to its header and cached rows. */
 function autoFit(col: number): void {
-  let maxChars = columns[col].length;
+  let longest = columns[col].length;
   for (const rows of chunks.values()) {
     for (const row of rows) {
       const len = (row[col] ?? '').length;
-      if (len > maxChars) {
-        maxChars = len;
+      if (len > longest) {
+        longest = len;
       }
     }
   }
-  colWidths[col] = Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, maxChars * 8 + 18));
+  colWidths[col] = autoWidth(longest);
   applyLayout();
   render();
 }
@@ -206,7 +180,7 @@ function render(): void {
 
     for (let c = 0; c < columns.length; c++) {
       const cell = document.createElement('div');
-      cell.className = cellClass('cell', c);
+      cell.className = classFor('cell', c);
       cell.textContent = row ? (row[c] ?? '') : '…';
       rowEl.appendChild(cell);
     }

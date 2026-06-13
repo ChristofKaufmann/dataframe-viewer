@@ -46,7 +46,14 @@ npm install
 npm run build     # bundle extension + webview with esbuild
 npm run watch     # rebuild on change
 npm run typecheck # tsc --noEmit
+npm test          # unit tests (node:test via tsx)
 ```
+
+Unit tests live in `test/` and cover the pure logic: the pandas data path
+(`pandasTable.ts` — index handling, cell formatting, truncation, output
+parsing, generated Python), the webview column helpers (`columns.ts` — numeric
+detection, widths, index/sticky cell classes), and a specificity guard for the
+row-hover CSS fix.
 
 Press **F5** in VS Code to launch an Extension Development Host with the
 extension loaded, then open `sample-data/cities.csv` with it.
@@ -67,6 +74,8 @@ extension loaded, then open `sample-data/cities.csv` with it.
 - `src/tableWebview.ts` — shared webview setup + chunked row serving
 - `src/webview/main.ts` — virtualized table; requests only the visible row
   chunks and caches a bounded number of them
+- `src/webview/columns.ts` — pure column helpers (numeric detection, widths,
+  cell classes), kept DOM-free so they can be unit-tested
 - `src/shared/protocol.ts` — typed messages between host and webview
 
 Row storage stays in the extension host (instead of shipping everything into
