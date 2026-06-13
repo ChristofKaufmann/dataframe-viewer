@@ -27,9 +27,10 @@ export interface DumpPayload {
 /**
  * Builds Python code that evaluates `objExpr`, normalizes it to a DataFrame
  * and prints the payload. Everything lives inside one temporary function so
- * a kernel's user namespace only ever sees (and loses) one name.
+ * a kernel's user namespace only ever sees (and loses) one name. `cmap` is the
+ * matplotlib colormap used for the heatmap colors.
  */
-export function buildDumpCode(objExpr: string): string {
+export function buildDumpCode(objExpr: string, cmap: string = HEATMAP_CMAP): string {
   return [
     'def _VSCODE_dataviewer_dump():',
     '    import csv',
@@ -76,7 +77,7 @@ export function buildDumpCode(objExpr: string): string {
     '    try:',
     '        import numpy as _np',
     '        import matplotlib as _mpl',
-    `        _cmap = _mpl.colormaps[${JSON.stringify(HEATMAP_CMAP)}]`,
+    `        _cmap = _mpl.colormaps[${JSON.stringify(cmap)}]`,
     '        _ncols, _nrows = head.shape[1], head.shape[0]',
     '        _numeric = [i for i in range(_ncols)',
     '                    if pd.api.types.is_numeric_dtype(head.iloc[:, i])',

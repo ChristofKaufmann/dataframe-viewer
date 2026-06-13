@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Jupyter, Kernel } from '@vscode/jupyter-extension';
 import { buildDumpCode, DumpPayload, parsePayload, toTable } from './pandasTable';
-import { configureTableWebview, TableData } from './tableWebview';
+import { configureTableWebview, LoadOptions, TableData } from './tableWebview';
 
 /**
  * Shape of the argument the Jupyter extension passes to a contributed
@@ -75,7 +75,7 @@ async function openVariable(
 
   // Re-acquired on every (re)load so refresh picks up the current value and
   // survives a kernel restart.
-  const load = async (): Promise<TableData> => {
+  const load = async (options: LoadOptions): Promise<TableData> => {
     const kernel = await api.kernels.getKernel(notebook.uri);
     if (!kernel) {
       throw new Error('No running kernel found for the notebook. Run a cell first.');
@@ -90,7 +90,7 @@ async function openVariable(
           title: `Data Viewer: loading "${variableName}"…`,
           cancellable: true,
         },
-        (_progress, token) => fetchVariable(kernel, variableName, token)
+        (_progress, token) => fetchVariable(kernel, variableName, options.colormap, token)
       );
       return { fileName: `${variableName} — ${notebookName}`, ...toTable(payload) };
     } catch (err) {
@@ -116,12 +116,13 @@ async function openVariable(
 async function fetchVariable(
   kernel: Kernel,
   name: string,
+  colormap: string | undefined,
   token: vscode.CancellationToken
 ): Promise<DumpPayload> {
   let stdout = '';
   let textPlain = '';
   const seenMimes = new Set<string>();
-  for await (const output of kernel.executeCode(buildDumpCode(name), token)) {
+  for await (const output of kernel.executeCode(buildDumpCode(name, colormap), token)) {
     for (const item of output.items) {
       seenMimes.add(item.mime);
       const text = new TextDecoder().decode(item.data);

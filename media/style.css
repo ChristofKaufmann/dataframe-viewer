@@ -68,6 +68,64 @@ body {
   cursor: pointer;
 }
 
+#heatmap-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+#heatmap-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#heatmap-settings:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+#heatmap-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 170px;
+  padding: 10px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35)));
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
+}
+
+#heatmap-panel[hidden] {
+  display: none;
+}
+
+#heatmap-panel .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+#heatmap-panel select {
+  padding: 2px 4px;
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+  border-radius: 3px;
+}
+
 #refresh.spinning .icon {
   animation: dv-spin 0.8s linear infinite;
 }

@@ -12,9 +12,11 @@ in the spirit of Data Wrangler but starting small.
   DataFrames viewed from a kernel
 
 - **Heatmap mode** (toolbar checkbox, on by default) — numeric cells are colored
-  by value with the viridis colormap. Colors are computed in pandas/matplotlib
-  with a single vmin/vmax over all numeric values; non-numeric and NaN cells are
-  left uncolored. (Switch the colormap via `HEATMAP_CMAP` in `pandasTable.ts`.)
+  by value. Colors are computed in pandas/matplotlib with a single vmin/vmax over
+  all numeric values; non-numeric and NaN cells are left uncolored. A gear button
+  opens a settings popover with a **colormap** selector (viridis, plasma, coolwarm,
+  …); changing it recomputes colors in Python on reload. (`HEATMAP_CMAP` in
+  `pandasTable.ts` sets the default.)
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
 - Toolbar with a **refresh** button that reloads from the original source (re-runs
   `read_csv` for files, re-queries the kernel for variables — picking up edits and

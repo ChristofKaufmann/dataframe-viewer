@@ -6,7 +6,7 @@ import {
   runPythonScript,
   selectInterpreter,
 } from './pythonRunner';
-import { configureTableWebview, TableData } from './tableWebview';
+import { configureTableWebview, LoadOptions, TableData } from './tableWebview';
 
 class TableDocument implements vscode.CustomDocument {
   constructor(readonly uri: vscode.Uri) {}
@@ -35,8 +35,8 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
   }
 
   resolveCustomEditor(document: TableDocument, webviewPanel: vscode.WebviewPanel): void {
-    configureTableWebview(webviewPanel.webview, this.context.extensionUri, () =>
-      this.loadData(document.uri)
+    configureTableWebview(webviewPanel.webview, this.context.extensionUri, (options) =>
+      this.loadData(document.uri, options)
     );
   }
 
@@ -45,9 +45,9 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
    * it behaves exactly like a DataFrame viewed from a kernel. If the
    * environment lacks pandas, offers to switch interpreter and retries.
    */
-  private async loadData(uri: vscode.Uri): Promise<TableData> {
+  private async loadData(uri: vscode.Uri, options: LoadOptions): Promise<TableData> {
     const name = uri.path.split('/').pop() ?? '';
-    const code = buildDumpCode(csvReadExpression(uri.fsPath));
+    const code = buildDumpCode(csvReadExpression(uri.fsPath), options.colormap);
     for (;;) {
       try {
         const stdout = await vscode.window.withProgress(

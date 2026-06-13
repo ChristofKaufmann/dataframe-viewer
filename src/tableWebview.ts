@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { createTableHost, TableData } from './tableHost';
+import { createTableHost, LoadOptions, TableData } from './tableHost';
 
-export { TableData } from './tableHost';
+export { LoadOptions, TableData } from './tableHost';
 
 /**
  * Points a webview at the bundled table renderer and serves it rows in
@@ -13,7 +13,7 @@ export { TableData } from './tableHost';
 export function configureTableWebview(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  load: () => Promise<TableData>
+  load: (options: LoadOptions) => Promise<TableData>
 ): vscode.Disposable {
   webview.options = {
     enableScripts: true,
@@ -53,9 +53,38 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
 <body>
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
-    <label id="heatmap-toggle" title="Color numeric cells by value (viridis)">
+    <label id="heatmap-toggle" title="Color numeric cells by value">
       <input type="checkbox" id="heatmap" checked> Heatmap
     </label>
+    <div id="heatmap-menu">
+      <button id="heatmap-settings" title="Heatmap settings" aria-expanded="false" aria-haspopup="true">⚙</button>
+      <div id="heatmap-panel" role="dialog" aria-label="Heatmap settings" hidden>
+        <label class="field">
+          <span>Colormap</span>
+          <select id="colormap">
+            <optgroup label="Perceptually uniform">
+              <option value="viridis">viridis</option>
+              <option value="plasma">plasma</option>
+              <option value="inferno">inferno</option>
+              <option value="magma">magma</option>
+              <option value="cividis">cividis</option>
+            </optgroup>
+            <optgroup label="Sequential">
+              <option value="Blues">Blues</option>
+              <option value="Greens">Greens</option>
+              <option value="Oranges">Oranges</option>
+              <option value="Greys">Greys</option>
+            </optgroup>
+            <optgroup label="Diverging">
+              <option value="coolwarm">coolwarm</option>
+              <option value="RdBu">RdBu</option>
+              <option value="Spectral">Spectral</option>
+              <option value="bwr">bwr</option>
+            </optgroup>
+          </select>
+        </label>
+      </div>
+    </div>
   </div>
   <div id="scroller">
     <div id="header"></div>

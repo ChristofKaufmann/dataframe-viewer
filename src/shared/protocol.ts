@@ -6,8 +6,8 @@ export const CHUNK_SIZE = 500;
 
 /** Webview -> extension host */
 export type WebviewMessage =
-  | { type: 'ready' }
-  | { type: 'refresh' }
+  | { type: 'ready'; colormap?: string }
+  | { type: 'refresh'; colormap?: string }
   | { type: 'rows'; chunk: number };
 
 /** Extension host -> webview */

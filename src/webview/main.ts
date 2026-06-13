@@ -16,6 +16,9 @@ const bodyEl = document.getElementById('body')!;
 const statusEl = document.getElementById('status')!;
 const refreshBtn = document.getElementById('refresh') as HTMLButtonElement;
 const heatmapCheckbox = document.getElementById('heatmap') as HTMLInputElement;
+const settingsBtn = document.getElementById('heatmap-settings') as HTMLButtonElement;
+const heatmapPanel = document.getElementById('heatmap-panel')!;
+const colormapSelect = document.getElementById('colormap') as HTMLSelectElement;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -37,6 +40,7 @@ const colorChunks = new Map<number, (string | null)[][] | null>();
 const pendingChunks = new Set<number>();
 
 let heatmap = heatmapCheckbox.checked;
+let currentColormap = colormapSelect.value;
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -82,12 +86,16 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
 });
 
 refreshBtn.addEventListener('click', () => {
-  if (refreshBtn.disabled) {
-    return;
+  if (!refreshBtn.disabled) {
+    requestReload();
   }
-  setRefreshing(true);
-  vscode.postMessage({ type: 'refresh' });
 });
+
+/** Asks the host to re-read the source with the current heatmap settings. */
+function requestReload(): void {
+  setRefreshing(true);
+  vscode.postMessage({ type: 'refresh', colormap: currentColormap });
+}
 
 /** Toggles the refresh button's spinner/disabled state. */
 function setRefreshing(on: boolean): void {
@@ -95,9 +103,33 @@ function setRefreshing(on: boolean): void {
   refreshBtn.classList.toggle('spinning', on);
 }
 
+// Heatmap on/off is a local re-render; the colors are already loaded.
 heatmapCheckbox.addEventListener('change', () => {
   heatmap = heatmapCheckbox.checked;
   render();
+});
+
+// Changing the colormap recomputes colors in Python, so it needs a reload.
+colormapSelect.addEventListener('change', () => {
+  currentColormap = colormapSelect.value;
+  requestReload();
+});
+
+// Settings popover: toggle on the gear, dismiss on outside-click or Escape.
+function setPanelOpen(open: boolean): void {
+  heatmapPanel.hidden = !open;
+  settingsBtn.setAttribute('aria-expanded', String(open));
+}
+settingsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setPanelOpen(heatmapPanel.hidden);
+});
+heatmapPanel.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', () => setPanelOpen(false));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    setPanelOpen(false);
+  }
 });
 
 let renderQueued = false;
@@ -263,4 +295,4 @@ function evictDistantChunks(currentChunk: number): void {
 }
 
 setRefreshing(true);
-vscode.postMessage({ type: 'ready' });
+vscode.postMessage({ type: 'ready', colormap: currentColormap });

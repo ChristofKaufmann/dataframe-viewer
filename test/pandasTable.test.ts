@@ -125,6 +125,8 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /matplotlib/);
   assert.match(code, /colormaps\["viridis"\]/);
   assert.match(code, /"colors": %s/);
+  // A chosen colormap is injected safely as a JSON/Python string literal.
+  assert.match(buildDumpCode('x', 'plasma'), /colormaps\["plasma"\]/);
   // Regression guards: no old single-name default, no dropped showIndex field.
   assert.doesNotMatch(code, /else "index"/);
   assert.doesNotMatch(code, /showIndex/);

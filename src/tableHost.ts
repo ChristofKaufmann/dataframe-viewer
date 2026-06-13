@@ -11,9 +11,15 @@ export interface TableData {
   colors: (string | null)[][] | null;
 }
 
+/** Parameters that affect how the data is (re)loaded, set from the webview UI. */
+export interface LoadOptions {
+  /** matplotlib colormap name for the heatmap; undefined uses the default. */
+  colormap?: string;
+}
+
 export interface TableHostDeps {
   /** Re-reads the original data source (file or kernel variable). */
-  load: () => Promise<TableData>;
+  load: (options: LoadOptions) => Promise<TableData>;
   /** Sends a message to the webview. */
   post: (message: HostMessage) => void;
   /** Surfaces a load failure to the user (e.g. a notification). */
@@ -29,13 +35,13 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
   let data: TableData | undefined;
   let busy = false;
 
-  const reload = async (): Promise<void> => {
+  const reload = async (options: LoadOptions): Promise<void> => {
     if (busy) {
       return;
     }
     busy = true;
     try {
-      data = await deps.load();
+      data = await deps.load(options);
       deps.post({
         type: 'init',
         fileName: data.fileName,
@@ -58,7 +64,7 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
     switch (message.type) {
       case 'ready':
       case 'refresh':
-        void reload();
+        void reload({ colormap: message.colormap });
         break;
       case 'rows': {
         if (!data) {
