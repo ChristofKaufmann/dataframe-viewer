@@ -16,12 +16,13 @@ const headerEl = document.getElementById('header')!;
 const bodyEl = document.getElementById('body')!;
 const statusEl = document.getElementById('status')!;
 
+// Column 0 is always the DataFrame index (sticky on the left); columns 1..n
+// are the data columns. Each row in a chunk follows the same layout.
 let columns: string[] = [];
 let rowCount = 0;
 let gridTemplate = '';
 let numericCols: boolean[] = [];
 let colWidths: number[] = [];
-let rowNumWidth = 46;
 
 const chunks = new Map<number, string[][]>();
 const pendingChunks = new Set<number>();
@@ -38,10 +39,12 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       if (rowCount <= message.sample.length) {
         chunks.set(0, message.sample);
       }
+      // columns[0] is the index, so the data column count is one less.
+      const dataCols = Math.max(0, columns.length - 1);
       statusEl.textContent =
-        rowCount === 0 && columns.length === 0
-          ? 'Empty file'
-          : `${rowCount.toLocaleString()} rows × ${columns.length.toLocaleString()} columns` +
+        rowCount === 0 && dataCols === 0
+          ? 'Empty'
+          : `${rowCount.toLocaleString()} rows × ${dataCols.toLocaleString()} columns` +
             (message.note ? ` — ${message.note}` : '');
       render();
       break;
@@ -93,15 +96,10 @@ function initLayout(sample: string[][]): void {
     colWidths.push(Math.min(MAX_COL_WIDTH, Math.max(AUTO_MIN_COL_WIDTH, maxChars * 8 + 18)));
   }
 
-  rowNumWidth = Math.max(46, String(rowCount).length * 8 + 22);
-
   headerEl.replaceChildren();
-  const corner = document.createElement('div');
-  corner.className = 'cell rownum corner';
-  headerEl.appendChild(corner);
   for (let c = 0; c < columns.length; c++) {
     const cell = document.createElement('div');
-    cell.className = numericCols[c] ? 'cell head num' : 'cell head';
+    cell.className = cellClass('cell head', c);
     cell.textContent = columns[c];
     cell.title = columns[c];
     const handle = document.createElement('div');
@@ -118,9 +116,21 @@ function initLayout(sample: string[][]): void {
   applyLayout();
 }
 
+/** Builds a cell class string, marking column 0 as the sticky index column. */
+function cellClass(base: string, col: number): string {
+  let cls = base;
+  if (numericCols[col]) {
+    cls += ' num';
+  }
+  if (col === 0) {
+    cls += base.includes('head') ? ' indexcol corner' : ' indexcol';
+  }
+  return cls;
+}
+
 function applyLayout(): void {
-  gridTemplate = `${rowNumWidth}px ${colWidths.map((w) => `${w}px`).join(' ')}`;
-  const totalWidth = rowNumWidth + colWidths.reduce((a, b) => a + b, 0);
+  gridTemplate = colWidths.map((w) => `${w}px`).join(' ');
+  const totalWidth = colWidths.reduce((a, b) => a + b, 0);
   headerEl.style.gridTemplateColumns = gridTemplate;
   headerEl.style.width = `${totalWidth}px`;
   bodyEl.style.width = `${totalWidth}px`;
@@ -194,14 +204,9 @@ function render(): void {
     rowEl.style.gridTemplateColumns = gridTemplate;
     rowEl.style.top = `${i * ROW_HEIGHT}px`;
 
-    const numCell = document.createElement('div');
-    numCell.className = 'cell rownum';
-    numCell.textContent = String(i + 1);
-    rowEl.appendChild(numCell);
-
     for (let c = 0; c < columns.length; c++) {
       const cell = document.createElement('div');
-      cell.className = numericCols[c] ? 'cell num' : 'cell';
+      cell.className = cellClass('cell', c);
       cell.textContent = row ? (row[c] ?? '') : '…';
       rowEl.appendChild(cell);
     }

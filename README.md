@@ -14,8 +14,10 @@ in the spirit of Data Wrangler but starting small.
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
+- The DataFrame index is shown as the leftmost column, labelled with the index
+  name (blank when the index is unnamed)
 - Numeric columns are detected and right-aligned
-- Sticky header and row numbers, theme-aware styling
+- Sticky header and index column, theme-aware styling
 - Status bar with row/column counts
 
 pandas is the single data engine: both paths run the same serialization code,

@@ -9,7 +9,7 @@ export const MAX_ROWS = 100_000;
 
 export interface DumpPayload {
   total: number;
-  showIndex: boolean;
+  /** The DataFrame index name, or "" when the index is unnamed. */
   indexName: string;
   table: { columns: string[]; index: unknown[]; data: unknown[][] };
 }
@@ -40,14 +40,13 @@ export function buildDumpCode(objExpr: string): string {
     '        obj = pd.DataFrame(obj)',
     '    total = len(obj)',
     `    head = obj.head(${MAX_ROWS}).copy()`,
-    '    show_index = not (isinstance(head.index, pd.RangeIndex) and head.index.start == 0 and head.index.step == 1)',
-    '    index_name = str(head.index.name) if head.index.name is not None else "index"',
+    '    index_name = str(head.index.name) if head.index.name is not None else ""',
     '    head.columns = [str(c) for c in head.columns]',
     '    if isinstance(head.index, pd.MultiIndex):',
     '        head.index = [str(i) for i in head.index]',
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
-    '    print(\'{"total": %d, "showIndex": %s, "indexName": %s, "table": %s}\'',
-    '          % (total, "true" if show_index else "false", json.dumps(index_name), table))',
+    '    print(\'{"total": %d, "indexName": %s, "table": %s}\'',
+    '          % (total, json.dumps(index_name), table))',
     '',
     '_VSCODE_dataviewer_dump()',
     'del _VSCODE_dataviewer_dump',
@@ -78,6 +77,11 @@ export function parsePayload(stdout: string): DumpPayload {
 }
 
 export interface TableContent {
+  /**
+   * Column headers. The first entry is the DataFrame index ("" when the index
+   * is unnamed); the rest are the data columns. Each row in `rows` follows the
+   * same layout, so the index always rides along as column 0.
+   */
   columns: string[];
   rows: string[][];
   /** Status-bar notice when the data was truncated to MAX_ROWS. */
@@ -85,7 +89,7 @@ export interface TableContent {
 }
 
 export function toTable(payload: DumpPayload): TableContent {
-  const { table, showIndex } = payload;
+  const { table } = payload;
   const format = (value: unknown): string => {
     if (value === null || value === undefined) {
       return '';
@@ -93,11 +97,8 @@ export function toTable(payload: DumpPayload): TableContent {
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
 
-  const columns = showIndex ? [payload.indexName, ...table.columns] : table.columns;
-  const rows = table.data.map((row, i) => {
-    const cells = row.map(format);
-    return showIndex ? [format(table.index[i]), ...cells] : cells;
-  });
+  const columns = [payload.indexName, ...table.columns];
+  const rows = table.data.map((row, i) => [format(table.index[i]), ...row.map(format)]);
   const note =
     payload.total > table.data.length
       ? `showing first ${table.data.length.toLocaleString()} of ${payload.total.toLocaleString()} rows`

@@ -49,7 +49,7 @@ body {
   display: grid;
 }
 
-.row.alt .cell:not(.rownum) {
+.row.alt .cell:not(.indexcol) {
   background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
 }
 
@@ -100,16 +100,15 @@ body.resizing {
   font-variant-numeric: tabular-nums;
 }
 
-.cell.rownum {
+.cell.indexcol {
   position: sticky;
   left: 0;
   z-index: 1;
-  text-align: right;
   color: var(--vscode-editorLineNumber-foreground);
   background: var(--vscode-editor-background);
 }
 
-.cell.rownum.corner {
+.cell.indexcol.corner {
   z-index: 4;
   background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
   border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35));
