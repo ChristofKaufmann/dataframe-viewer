@@ -45,9 +45,18 @@ export function buildDumpCode(objExpr: string): string {
     // MultiIndex still gets a header. Blank when no level is named.
     '    index_names = [str(n) if n is not None else "" for n in head.index.names]',
     '    index_name = ", ".join(index_names) if any(index_names) else ""',
+    // Render datetimes/timedeltas like str()/print ("2022-05-15 08:30:00")
+    // instead of the ISO format to_json emits; NaT stays null (blank cell).
+    '    def _vscode_fmt(col):',
+    '        if pd.api.types.is_datetime64_any_dtype(col) or pd.api.types.is_timedelta64_dtype(col):',
+    '            return col.map(lambda x: None if pd.isna(x) else str(x))',
+    '        return col',
+    '    head = head.apply(_vscode_fmt)',
     '    head.columns = [str(c) for c in head.columns]',
     '    if isinstance(head.index, pd.MultiIndex):',
     '        head.index = [str(i) for i in head.index]',
+    '    elif pd.api.types.is_datetime64_any_dtype(head.index) or pd.api.types.is_timedelta64_dtype(head.index):',
+    '        head.index = [None if pd.isna(i) else str(i) for i in head.index]',
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
     '    print(\'{"total": %d, "indexName": %s, "table": %s}\'',
     '          % (total, json.dumps(index_name), table))',

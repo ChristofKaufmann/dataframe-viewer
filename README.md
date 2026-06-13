@@ -98,7 +98,3 @@ identical behavior for files and variables.
 - Parquet / Excel / JSON Lines support
 - Column statistics and type inference
 - Header on/off toggle, encoding selection
-
-## Tests to try
-
-- DateTime column and index

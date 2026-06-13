@@ -102,6 +102,10 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   // joined with ", " and blank when no level is named.
   assert.match(code, /head\.index\.names/);
   assert.match(code, /", "\.join/);
+  // Datetimes/timedeltas are stringified like str() rather than left to
+  // to_json's ISO format.
+  assert.match(code, /is_datetime64_any_dtype/);
+  assert.match(code, /None if pd\.isna\(x\) else str\(x\)/);
   // Regression guards: no old single-name default, no dropped showIndex field.
   assert.doesNotMatch(code, /else "index"/);
   assert.doesNotMatch(code, /showIndex/);
