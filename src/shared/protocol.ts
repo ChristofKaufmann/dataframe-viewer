@@ -21,6 +21,14 @@ export type HostMessage =
       rowCount: number;
       /** First rows, used for column width/type estimation and initial paint. */
       sample: string[][];
+      /** Heatmap colors for the sample rows, or null when no heatmap applies. */
+      sampleColors: (string | null)[][] | null;
     }
-  | { type: 'rows'; chunk: number; rows: string[][] }
+  | {
+      type: 'rows';
+      chunk: number;
+      rows: string[][];
+      /** Heatmap colors aligned to `rows`, or null when no heatmap applies. */
+      colors: (string | null)[][] | null;
+    }
   | { type: 'error'; message: string };

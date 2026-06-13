@@ -13,6 +13,7 @@ function payload(over: Partial<DumpPayload> = {}): DumpPayload {
     total: 2,
     indexName: '',
     table: { columns: ['a', 'b'], index: [0, 1], data: [[1, 'x'], [2, 'y']] },
+    colors: null,
     ...over,
   };
 }
@@ -24,6 +25,20 @@ test('toTable always prepends the index as column 0', () => {
     ['0', '1', 'x'],
     ['1', '2', 'y'],
   ]);
+});
+
+test('toTable prepends a null index color, aligning colors with rows', () => {
+  const { colors } = toTable(
+    payload({ colors: [['#111111', null], [null, '#222222']] })
+  );
+  assert.deepEqual(colors, [
+    [null, '#111111', null],
+    [null, null, '#222222'],
+  ]);
+});
+
+test('toTable passes through null colors (no heatmap)', () => {
+  assert.equal(toTable(payload({ colors: null })).colors, null);
 });
 
 test('toTable uses the index name as the first header when named', () => {
@@ -106,6 +121,10 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   // to_json's ISO format.
   assert.match(code, /is_datetime64_any_dtype/);
   assert.match(code, /None if pd\.isna\(x\) else str\(x\)/);
+  // Heatmap colors are computed in Python via matplotlib, resiliently.
+  assert.match(code, /matplotlib/);
+  assert.match(code, /colormaps\["viridis"\]/);
+  assert.match(code, /"colors": %s/);
   // Regression guards: no old single-name default, no dropped showIndex field.
   assert.doesNotMatch(code, /else "index"/);
   assert.doesNotMatch(code, /showIndex/);

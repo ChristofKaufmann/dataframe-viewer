@@ -11,6 +11,10 @@ in the spirit of Data Wrangler but starting small.
   auto-detected: comma, semicolon, tab, pipe) so files behave exactly like
   DataFrames viewed from a kernel
 
+- **Heatmap mode** (toolbar checkbox, on by default) — numeric cells are colored
+  by value with the viridis colormap. Colors are computed in pandas/matplotlib
+  with a single vmin/vmax over all numeric values; non-numeric and NaN cells are
+  left uncolored. (Switch the colormap via `HEATMAP_CMAP` in `pandasTable.ts`.)
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
 - Toolbar with a **refresh** button that reloads from the original source (re-runs
   `read_csv` for files, re-queries the kernel for variables — picking up edits and
@@ -57,8 +61,8 @@ Unit tests live in `test/` and cover the pure logic: the pandas data path
 parsing, generated Python), the webview column helpers (`columns.ts` — numeric
 detection, widths, index/sticky cell classes), the load/refresh message loop
 (`tableHost.ts` — init sampling, chunk slicing, refresh, error handling, and the
-busy guard against overlapping reloads), and a specificity guard for the
-row-hover CSS fix.
+busy guard against overlapping reloads), the heatmap text-contrast helper
+(`contrast.ts`), and a specificity guard for the row-hover CSS fix.
 
 Press **F5** in VS Code to launch an Extension Development Host with the
 extension loaded, then open `sample-data/cities.csv` with it.
@@ -84,6 +88,8 @@ extension loaded, then open `sample-data/cities.csv` with it.
   chunks and caches a bounded number of them
 - `src/webview/columns.ts` — pure column helpers (numeric detection, widths,
   cell classes), kept DOM-free so they can be unit-tested
+- `src/webview/contrast.ts` — pure helper picking black/white text for a
+  heatmap background color
 - `src/shared/protocol.ts` — typed messages between host and webview
 
 Row storage stays in the extension host (instead of shipping everything into
@@ -93,7 +99,8 @@ identical behavior for files and variables.
 
 ## Ideas for later
 
-- Heatmap-like background color with selectable color map and settings (vmin, vmax, center)
+- Heatmap: selectable colormap, per-column vmin/vmax, center, and a runtime
+  colormap switch (currently fixed to viridis with a global range, computed in pandas)
 - Sorting and filtering
 - Parquet / Excel / JSON Lines support
 - Column statistics and type inference

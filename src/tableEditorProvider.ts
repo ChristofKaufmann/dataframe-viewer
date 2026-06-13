@@ -54,8 +54,7 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
           { location: vscode.ProgressLocation.Window, title: `Data Viewer: loading ${name}…` },
           (_progress, token) => runPythonScript(code, uri, token)
         );
-        const { columns, rows, note } = toTable(parsePayload(stdout));
-        return { fileName: name, columns, rows, note };
+        return { fileName: name, ...toTable(parsePayload(stdout)) };
       } catch (err) {
         if (!(err instanceof PythonEnvironmentError) || !canSelectInterpreter()) {
           throw err;

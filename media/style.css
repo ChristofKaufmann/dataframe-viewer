@@ -53,6 +53,21 @@ body {
   display: inline-block;
 }
 
+#heatmap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+#heatmap-toggle input {
+  margin: 0;
+  cursor: pointer;
+}
+
 #refresh.spinning .icon {
   animation: dv-spin 0.8s linear infinite;
 }

@@ -7,11 +7,21 @@
 
 export const MAX_ROWS = 100_000;
 
+/** Colormap applied to numeric values for the heatmap (any matplotlib name). */
+export const HEATMAP_CMAP = 'viridis';
+
 export interface DumpPayload {
   total: number;
   /** The DataFrame index name, or "" when the index is unnamed. */
   indexName: string;
   table: { columns: string[]; index: unknown[]; data: unknown[][] };
+  /**
+   * Per-cell background colors for the heatmap, aligned to `table.data`
+   * (rows × data columns): a "#rrggbb" string for numeric cells, null for
+   * non-numeric/NaN cells. null overall when no heatmap applies (no numeric
+   * columns, or matplotlib unavailable in the environment).
+   */
+  colors: (string | null)[][] | null;
 }
 
 /**
@@ -58,8 +68,39 @@ export function buildDumpCode(objExpr: string): string {
     '    elif pd.api.types.is_datetime64_any_dtype(head.index) or pd.api.types.is_timedelta64_dtype(head.index):',
     '        head.index = [None if pd.isna(i) else str(i) for i in head.index]',
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
-    '    print(\'{"total": %d, "indexName": %s, "table": %s}\'',
-    '          % (total, json.dumps(index_name), table))',
+    // Heatmap colors: map every numeric cell through a matplotlib colormap
+    // using a single vmin/vmax over all numeric values. Non-numeric and NaN
+    // cells stay null. Wrapped in try/except so a kernel without matplotlib
+    // still views fine (colors just become null).
+    '    colors = None',
+    '    try:',
+    '        import numpy as _np',
+    '        import matplotlib as _mpl',
+    `        _cmap = _mpl.colormaps[${JSON.stringify(HEATMAP_CMAP)}]`,
+    '        _ncols, _nrows = head.shape[1], head.shape[0]',
+    '        _numeric = [i for i in range(_ncols)',
+    '                    if pd.api.types.is_numeric_dtype(head.iloc[:, i])',
+    '                    and not pd.api.types.is_bool_dtype(head.iloc[:, i])]',
+    '        if _numeric and _nrows:',
+    '            _stacked = _np.concatenate([head.iloc[:, i].to_numpy(dtype="float64") for i in _numeric])',
+    '            _finite = _stacked[_np.isfinite(_stacked)]',
+    '            if _finite.size:',
+    '                _vmin, _vmax = float(_finite.min()), float(_finite.max())',
+    '                _denom = (_vmax - _vmin) or 1.0',
+    '                _cols = [[None] * _nrows for _ in range(_ncols)]',
+    '                for i in _numeric:',
+    '                    _arr = head.iloc[:, i].to_numpy(dtype="float64")',
+    '                    _norm = _np.clip((_arr - _vmin) / _denom, 0.0, 1.0)',
+    '                    _rgb = (_cmap(_norm)[:, :3] * 255).round().astype("int64")',
+    '                    _packed = (_rgb[:, 0] << 16) | (_rgb[:, 1] << 8) | _rgb[:, 2]',
+    '                    _hex = ["#%06x" % int(p) for p in _packed]',
+    '                    _mask = _np.isfinite(_arr)',
+    '                    _cols[i] = [h if m else None for h, m in zip(_hex, _mask)]',
+    '                colors = [list(_row) for _row in zip(*_cols)]',
+    '    except Exception:',
+    '        colors = None',
+    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s}\'',
+    '          % (total, json.dumps(index_name), table, json.dumps(colors)))',
     '',
     '_VSCODE_dataviewer_dump()',
     'del _VSCODE_dataviewer_dump',
@@ -97,6 +138,12 @@ export interface TableContent {
    */
   columns: string[];
   rows: string[][];
+  /**
+   * Per-cell heatmap background colors aligned to `rows` (the index column,
+   * like the header, gets a leading null since it is never colored). null when
+   * no heatmap applies.
+   */
+  colors: (string | null)[][] | null;
   /** Status-bar notice when the data was truncated to MAX_ROWS. */
   note?: string;
 }
@@ -112,9 +159,11 @@ export function toTable(payload: DumpPayload): TableContent {
 
   const columns = [payload.indexName, ...table.columns];
   const rows = table.data.map((row, i) => [format(table.index[i]), ...row.map(format)]);
+  // Prepend a null for the index column so colors line up with rows/columns.
+  const colors = payload.colors ? payload.colors.map((row) => [null, ...row]) : null;
   const note =
     payload.total > table.data.length
       ? `showing first ${table.data.length.toLocaleString()} of ${payload.total.toLocaleString()} rows`
       : undefined;
-  return { columns, rows, note };
+  return { columns, rows, colors, note };
 }

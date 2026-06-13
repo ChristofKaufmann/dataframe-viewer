@@ -1,5 +1,6 @@
 import { CHUNK_SIZE, HostMessage, WebviewMessage } from '../shared/protocol';
 import { autoWidth, cellClass, clampDragWidth, isNumericColumn, maxChars } from './columns';
+import { idealTextColor } from './contrast';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -14,6 +15,7 @@ const headerEl = document.getElementById('header')!;
 const bodyEl = document.getElementById('body')!;
 const statusEl = document.getElementById('status')!;
 const refreshBtn = document.getElementById('refresh') as HTMLButtonElement;
+const heatmapCheckbox = document.getElementById('heatmap') as HTMLInputElement;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -29,7 +31,12 @@ let colWidths: number[] = [];
 const manualWidths = new Map<string, number>();
 
 const chunks = new Map<number, string[][]>();
+// Heatmap colors per chunk, parallel to `chunks` (same keys/row layout). A
+// chunk's entry is null when the table has no heatmap colors at all.
+const colorChunks = new Map<number, (string | null)[][] | null>();
 const pendingChunks = new Set<number>();
+
+let heatmap = heatmapCheckbox.checked;
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -38,6 +45,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       // Drop any cached rows from the previous load — a refresh may have
       // changed the data underneath us.
       chunks.clear();
+      colorChunks.clear();
       pendingChunks.clear();
       columns = message.columns;
       rowCount = message.rowCount;
@@ -46,6 +54,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       // a partial chunk would otherwise mask the missing rows forever.
       if (rowCount <= message.sample.length) {
         chunks.set(0, message.sample);
+        colorChunks.set(0, message.sampleColors);
       }
       // columns[0] is the index, so the data column count is one less.
       const dataCols = Math.max(0, columns.length - 1);
@@ -61,6 +70,7 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
     case 'rows':
       pendingChunks.delete(message.chunk);
       chunks.set(message.chunk, message.rows);
+      colorChunks.set(message.chunk, message.colors);
       evictDistantChunks(message.chunk);
       render();
       break;
@@ -84,6 +94,11 @@ function setRefreshing(on: boolean): void {
   refreshBtn.disabled = on;
   refreshBtn.classList.toggle('spinning', on);
 }
+
+heatmapCheckbox.addEventListener('change', () => {
+  heatmap = heatmapCheckbox.checked;
+  render();
+});
 
 let renderQueued = false;
 function scheduleRender(): void {
@@ -201,7 +216,9 @@ function render(): void {
     if (!chunk) {
       requestChunk(chunkIndex);
     }
-    const row = chunk?.[i - chunkIndex * CHUNK_SIZE];
+    const localRow = i - chunkIndex * CHUNK_SIZE;
+    const row = chunk?.[localRow];
+    const colorRow = heatmap ? (colorChunks.get(chunkIndex) ?? null)?.[localRow] : undefined;
 
     const rowEl = document.createElement('div');
     rowEl.className = i % 2 === 1 ? 'row alt' : 'row';
@@ -212,6 +229,11 @@ function render(): void {
       const cell = document.createElement('div');
       cell.className = classFor('cell', c);
       cell.textContent = row ? (row[c] ?? '') : '…';
+      const bg = colorRow?.[c];
+      if (bg) {
+        cell.style.backgroundColor = bg;
+        cell.style.color = idealTextColor(bg);
+      }
       rowEl.appendChild(cell);
     }
     fragment.appendChild(rowEl);
@@ -236,6 +258,7 @@ function evictDistantChunks(currentChunk: number): void {
   );
   for (const key of sorted.slice(0, chunks.size - MAX_CACHED_CHUNKS)) {
     chunks.delete(key);
+    colorChunks.delete(key);
   }
 }
 

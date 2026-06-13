@@ -92,8 +92,7 @@ async function openVariable(
         },
         (_progress, token) => fetchVariable(kernel, variableName, token)
       );
-      const { columns, rows, note } = toTable(payload);
-      return { fileName: `${variableName} — ${notebookName}`, columns, rows, note };
+      return { fileName: `${variableName} — ${notebookName}`, ...toTable(payload) };
     } catch (err) {
       if (err instanceof Error && err.name === 'vscode.jupyter.apiAccessRevoked') {
         throw new Error(

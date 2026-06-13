@@ -7,6 +7,8 @@ export interface TableData {
   note?: string;
   columns: string[];
   rows: string[][];
+  /** Per-cell heatmap colors aligned to `rows`, or null when none apply. */
+  colors: (string | null)[][] | null;
 }
 
 export interface TableHostDeps {
@@ -41,6 +43,7 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
         columns: data.columns,
         rowCount: data.rows.length,
         sample: data.rows.slice(0, 100),
+        sampleColors: data.colors ? data.colors.slice(0, 100) : null,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -66,6 +69,7 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
           type: 'rows',
           chunk: message.chunk,
           rows: data.rows.slice(start, start + CHUNK_SIZE),
+          colors: data.colors ? data.colors.slice(start, start + CHUNK_SIZE) : null,
         });
         break;
       }

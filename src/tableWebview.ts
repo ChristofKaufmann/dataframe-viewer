@@ -53,6 +53,9 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
 <body>
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
+    <label id="heatmap-toggle" title="Color numeric cells by value (viridis)">
+      <input type="checkbox" id="heatmap" checked> Heatmap
+    </label>
   </div>
   <div id="scroller">
     <div id="header"></div>

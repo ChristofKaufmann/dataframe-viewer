@@ -16,11 +16,12 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function makeData(rows: number, tag = ''): TableData {
+function makeData(rows: number, tag = '', colors: TableData['colors'] = null): TableData {
   return {
     fileName: `f${tag}`,
     columns: ['', 'a'],
     rows: Array.from({ length: rows }, (_, i) => [String(i), `v${tag}${i}`]),
+    colors,
   };
 }
 
@@ -85,6 +86,38 @@ test('rows requests after init return the right chunk slice', async () => {
   // The last chunk is the remainder past one full chunk.
   assert.equal(second.rows.length, 3);
   assert.deepEqual(second.rows[0], [String(CHUNK_SIZE), `v${CHUNK_SIZE}`]);
+});
+
+test('heatmap colors are sliced alongside rows', async () => {
+  const total = CHUNK_SIZE + 2;
+  const colors = Array.from({ length: total }, (_, i) => [null, i % 2 ? '#abcabc' : null]);
+  const { handle, posts } = harness(async () => makeData(total, '', colors));
+
+  handle({ type: 'ready' });
+  await flush();
+  const init = posts.find((m) => m.type === 'init');
+  assert.ok(init?.type === 'init' && init.sampleColors);
+  assert.deepEqual(init.sampleColors[1], [null, '#abcabc']);
+
+  posts.length = 0;
+  handle({ type: 'rows', chunk: 1 });
+  const rows = posts.find((m) => m.type === 'rows');
+  assert.ok(rows?.type === 'rows' && rows.colors);
+  assert.equal(rows.colors.length, 2);
+  assert.deepEqual(rows.colors[0], colors[CHUNK_SIZE]);
+});
+
+test('null colors (no heatmap) stay null through init and rows', async () => {
+  const { handle, posts } = harness(async () => makeData(CHUNK_SIZE + 1));
+  handle({ type: 'ready' });
+  await flush();
+  const init = posts.find((m) => m.type === 'init');
+  assert.ok(init?.type === 'init' && init.sampleColors === null);
+
+  posts.length = 0;
+  handle({ type: 'rows', chunk: 0 });
+  const rows = posts.find((m) => m.type === 'rows');
+  assert.ok(rows?.type === 'rows' && rows.colors === null);
 });
 
 test('refresh reloads and posts a fresh init reflecting the new data', async () => {
