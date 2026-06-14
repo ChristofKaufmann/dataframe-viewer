@@ -17,27 +17,43 @@ export interface DumpPayload {
   table: { columns: string[]; index: unknown[]; data: unknown[][] };
   /**
    * Per-cell background colors for the heatmap, aligned to `table.data`
-   * (rows × data columns): a "#rrggbb" string for numeric cells, null for
-   * non-numeric/NaN cells. null overall when no heatmap applies (no numeric
-   * columns, or matplotlib unavailable in the environment).
+   * (rows × data columns): a "#rrggbb" string for colored cells, null for
+   * uncolored cells (non-numeric/non-datetime, NaN/NaT, or a disabled type).
+   * null overall when nothing is colored (no colorable columns, all types
+   * disabled, or matplotlib unavailable in the environment).
    */
   colors: (string | null)[][] | null;
 }
 
+export interface HeatmapOptions {
+  /** matplotlib colormap name. */
+  colormap?: string;
+  /** Symmetric range around 0 (vmax = max(|vmin|, |vmax|), vmin = -vmax). */
+  center?: boolean;
+  /** Range computed per column instead of once per type group. */
+  columnwise?: boolean;
+  /** Color numeric columns (default true). */
+  colorizeNumeric?: boolean;
+  /** Color datetime/timedelta columns by their timestamp (default true). */
+  colorizeDatetime?: boolean;
+}
+
 /**
  * Builds Python code that evaluates `objExpr`, normalizes it to a DataFrame
- * and prints the payload. Everything lives inside one temporary function so
- * a kernel's user namespace only ever sees (and loses) one name. `cmap` is the
- * matplotlib colormap used for the heatmap colors; `center` makes the value
- * range symmetric around 0 (vmax = max(|vmin|, |vmax|), vmin = -vmax);
- * `columnwise` computes the range per column instead of once over all numerics.
+ * and prints the payload. Everything lives inside one temporary function so a
+ * kernel's user namespace only ever sees (and loses) one name.
+ *
+ * Heatmap colors are computed per type group: numeric columns share one
+ * vmin/vmax, datetime/timedelta columns share a separate one (so timestamps
+ * never distort the numeric range). `columnwise` instead ranges each column on
+ * its own; `center` makes a range symmetric around 0.
  */
-export function buildDumpCode(
-  objExpr: string,
-  cmap: string = HEATMAP_CMAP,
-  center: boolean = false,
-  columnwise: boolean = false
-): string {
+export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): string {
+  const cmap = options.colormap ?? HEATMAP_CMAP;
+  const center = options.center ?? false;
+  const columnwise = options.columnwise ?? false;
+  const colorizeNumeric = options.colorizeNumeric ?? true;
+  const colorizeDatetime = options.colorizeDatetime ?? true;
   return [
     'def _VSCODE_dataviewer_dump():',
     '    import csv',
@@ -69,6 +85,9 @@ export function buildDumpCode(
     '        if pd.api.types.is_datetime64_any_dtype(col) or pd.api.types.is_timedelta64_dtype(col):',
     '            return col.map(lambda x: None if pd.isna(x) else str(x))',
     '        return col',
+    // Keep the original-dtype frame for color computation; `head` becomes the
+    // stringified display version.
+    '    _raw = head',
     '    head = head.apply(_vscode_fmt)',
     '    head.columns = [str(c) for c in head.columns]',
     '    if isinstance(head.index, pd.MultiIndex):',
@@ -76,11 +95,11 @@ export function buildDumpCode(
     '    elif pd.api.types.is_datetime64_any_dtype(head.index) or pd.api.types.is_timedelta64_dtype(head.index):',
     '        head.index = [None if pd.isna(i) else str(i) for i in head.index]',
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
-    // Heatmap colors: map every numeric cell through a matplotlib colormap.
-    // The value range is either shared across all numeric columns or computed
-    // per column (columnwise); `center` makes it symmetric around 0. Non-numeric
-    // and NaN cells stay null. Wrapped in try/except so a kernel without
-    // matplotlib still views fine (colors just become null).
+    // Heatmap colors, computed from the original-dtype frame. Numeric and
+    // datetime columns form separate range groups (datetimes use epoch values,
+    // so they never distort the numeric range). Within a group the range is
+    // shared, or per-column when columnwise; `center` makes it symmetric.
+    // Wrapped in try/except so a kernel without matplotlib still views fine.
     '    colors = None',
     '    try:',
     '        import numpy as _np',
@@ -88,35 +107,56 @@ export function buildDumpCode(
     `        _cmap = _mpl.colormaps[${JSON.stringify(cmap)}]`,
     `        _center = ${center ? 'True' : 'False'}`,
     `        _columnwise = ${columnwise ? 'True' : 'False'}`,
-    '        _ncols, _nrows = head.shape[1], head.shape[0]',
-    '        _numeric = [i for i in range(_ncols)',
-    '                    if pd.api.types.is_numeric_dtype(head.iloc[:, i])',
-    '                    and not pd.api.types.is_bool_dtype(head.iloc[:, i])]',
-    '        if _numeric and _nrows:',
-    '            _stacked = _np.concatenate([head.iloc[:, i].to_numpy(dtype="float64") for i in _numeric])',
-    '            _gfinite = _stacked[_np.isfinite(_stacked)]',
-    '            if _gfinite.size:',
-    '                _glo, _ghi = float(_gfinite.min()), float(_gfinite.max())',
-    '                _cols = [[None] * _nrows for _ in range(_ncols)]',
-    '                for i in _numeric:',
-    '                    _arr = head.iloc[:, i].to_numpy(dtype="float64")',
-    '                    _mask = _np.isfinite(_arr)',
-    '                    if _columnwise:',
-    '                        _cf = _arr[_mask]',
-    '                        if not _cf.size:',
-    '                            continue',
-    '                        _lo, _hi = float(_cf.min()), float(_cf.max())',
-    '                    else:',
-    '                        _lo, _hi = _glo, _ghi',
-    '                    if _center:',
-    '                        _hi = max(abs(_lo), abs(_hi))',
-    '                        _lo = -_hi',
-    '                    _denom = (_hi - _lo) or 1.0',
-    '                    _norm = _np.clip((_arr - _lo) / _denom, 0.0, 1.0)',
-    '                    _rgb = (_cmap(_norm)[:, :3] * 255).round().astype("int64")',
-    '                    _packed = (_rgb[:, 0] << 16) | (_rgb[:, 1] << 8) | _rgb[:, 2]',
-    '                    _hex = ["#%06x" % int(p) for p in _packed]',
-    '                    _cols[i] = [h if m else None for h, m in zip(_hex, _mask)]',
+    `        _do_num = ${colorizeNumeric ? 'True' : 'False'}`,
+    `        _do_dt = ${colorizeDatetime ? 'True' : 'False'}`,
+    '        _ncols, _nrows = _raw.shape[1], _raw.shape[0]',
+    '        _vals = [None] * _ncols',
+    '        _grp = [None] * _ncols',
+    '        for _i in range(_ncols):',
+    '            _c = _raw.iloc[:, _i]',
+    '            if _do_num and pd.api.types.is_numeric_dtype(_c) and not pd.api.types.is_bool_dtype(_c):',
+    '                _vals[_i] = _c.to_numpy(dtype="float64")',
+    '                _grp[_i] = "num"',
+    '            elif _do_dt and (pd.api.types.is_datetime64_any_dtype(_c) or pd.api.types.is_timedelta64_dtype(_c)):',
+    '                _a = _c.to_numpy()',
+    '                _f = _a.astype("int64").astype("float64")',
+    '                _f[_np.isnat(_a)] = _np.nan',
+    '                _vals[_i] = _f',
+    '                _grp[_i] = "dt"',
+    '        def _grange(_g):',
+    '            _members = [_vals[_i] for _i in range(_ncols) if _grp[_i] == _g]',
+    '            if not _members:',
+    '                return None',
+    '            _s = _np.concatenate([_m[_np.isfinite(_m)] for _m in _members])',
+    '            return (float(_s.min()), float(_s.max())) if _s.size else None',
+    '        _ranges = {"num": _grange("num"), "dt": _grange("dt")}',
+    '        if _nrows and any(_g is not None for _g in _grp):',
+    '            _cols = [[None] * _nrows for _ in range(_ncols)]',
+    '            for _i in range(_ncols):',
+    '                if _grp[_i] is None:',
+    '                    continue',
+    '                _arr = _vals[_i]',
+    '                _mask = _np.isfinite(_arr)',
+    '                if not _mask.any():',
+    '                    continue',
+    '                if _columnwise:',
+    '                    _cf = _arr[_mask]',
+    '                    _lo, _hi = float(_cf.min()), float(_cf.max())',
+    '                else:',
+    '                    _r = _ranges[_grp[_i]]',
+    '                    if _r is None:',
+    '                        continue',
+    '                    _lo, _hi = _r',
+    '                if _center:',
+    '                    _hi = max(abs(_lo), abs(_hi))',
+    '                    _lo = -_hi',
+    '                _denom = (_hi - _lo) or 1.0',
+    '                _norm = _np.clip((_arr - _lo) / _denom, 0.0, 1.0)',
+    '                _rgb = (_cmap(_norm)[:, :3] * 255).round().astype("int64")',
+    '                _packed = (_rgb[:, 0] << 16) | (_rgb[:, 1] << 8) | _rgb[:, 2]',
+    '                _hex = ["#%06x" % int(p) for p in _packed]',
+    '                _cols[_i] = [h if m else None for h, m in zip(_hex, _mask)]',
+    '            if any(any(c is not None for c in _col) for _col in _cols):',
     '                colors = [list(_row) for _row in zip(*_cols)]',
     '    except Exception:',
     '        colors = None',

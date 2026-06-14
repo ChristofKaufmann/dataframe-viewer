@@ -158,29 +158,39 @@ test('non-Error rejections are stringified', async () => {
   assert.deepEqual(errors, ['plain string failure']);
 });
 
-test('forwards colormap, center and columnwise from ready/refresh to load', async () => {
-  const seen: { colormap?: string; center?: boolean; columnwise?: boolean }[] = [];
+test('forwards all heatmap options from ready/refresh to load', async () => {
+  const seen: object[] = [];
   const handle = createTableHost({
     load: async (options) => {
-      seen.push({
-        colormap: options.colormap,
-        center: options.center,
-        columnwise: options.columnwise,
-      });
+      seen.push({ ...options });
       return makeData(1);
     },
     post: () => {},
     reportError: () => {},
   });
 
-  handle({ type: 'ready', colormap: 'viridis', center: false, columnwise: false });
+  handle({
+    type: 'ready',
+    colormap: 'viridis',
+    center: false,
+    columnwise: false,
+    colorizeNumeric: true,
+    colorizeDatetime: true,
+  });
   await flush();
-  handle({ type: 'refresh', colormap: 'coolwarm', center: true, columnwise: true });
+  handle({
+    type: 'refresh',
+    colormap: 'coolwarm',
+    center: true,
+    columnwise: true,
+    colorizeNumeric: true,
+    colorizeDatetime: false,
+  });
   await flush();
 
   assert.deepEqual(seen, [
-    { colormap: 'viridis', center: false, columnwise: false },
-    { colormap: 'coolwarm', center: true, columnwise: true },
+    { colormap: 'viridis', center: false, columnwise: false, colorizeNumeric: true, colorizeDatetime: true },
+    { colormap: 'coolwarm', center: true, columnwise: true, colorizeNumeric: true, colorizeDatetime: false },
   ]);
 });
 

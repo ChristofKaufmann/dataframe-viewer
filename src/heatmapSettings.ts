@@ -7,7 +7,8 @@ import type * as vscode from 'vscode';
 import { HEATMAP_CMAP } from './pandasTable';
 
 export interface HeatmapSettings {
-  enabled: boolean;
+  colorizeNumeric: boolean;
+  colorizeDatetime: boolean;
   colormap: string;
   center: boolean;
   columnwise: boolean;
@@ -18,7 +19,8 @@ const STATE_KEY = 'dataViewer.heatmap';
 export function getHeatmapSettings(context: vscode.ExtensionContext): HeatmapSettings {
   const saved = context.globalState.get<Partial<HeatmapSettings>>(STATE_KEY) ?? {};
   return {
-    enabled: saved.enabled ?? true,
+    colorizeNumeric: saved.colorizeNumeric ?? true,
+    colorizeDatetime: saved.colorizeDatetime ?? true,
     colormap: saved.colormap ?? HEATMAP_CMAP,
     center: saved.center ?? false,
     columnwise: saved.columnwise ?? false,

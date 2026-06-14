@@ -44,7 +44,8 @@ export function configureTableWebview(
   return webview.onDidReceiveMessage((message: WebviewMessage) => {
     if (message.type === 'settings') {
       void updateHeatmapSettings(context, {
-        enabled: message.enabled,
+        colorizeNumeric: message.colorizeNumeric,
+        colorizeDatetime: message.colorizeDatetime,
         colormap: message.colormap,
         center: message.center,
         columnwise: message.columnwise,
@@ -91,12 +92,18 @@ function getHtml(
 <body>
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
-    <label id="heatmap-toggle" title="Color numeric cells by value">
-      <input type="checkbox" id="heatmap"${settings.enabled ? ' checked' : ''}> Heatmap
+    <label id="heatmap-toggle" title="Color cells by value">
+      <input type="checkbox" id="heatmap"${settings.colorizeNumeric && settings.colorizeDatetime ? ' checked' : ''}> Heatmap
     </label>
     <div id="heatmap-menu">
       <button id="heatmap-settings" title="Heatmap settings" aria-expanded="false" aria-haspopup="true">⚙</button>
       <div id="heatmap-panel" role="dialog" aria-label="Heatmap settings" hidden>
+        <label class="field-check" title="Color numeric columns">
+          <input type="checkbox" id="colorize-numeric"${settings.colorizeNumeric ? ' checked' : ''}> Colorize numeric
+        </label>
+        <label class="field-check" title="Color datetime columns by their timestamp">
+          <input type="checkbox" id="colorize-datetime"${settings.colorizeDatetime ? ' checked' : ''}> Colorize datetime
+        </label>
         <label class="field">
           <span>Colormap</span>
           <select id="colormap">${colormapOptions}</select>

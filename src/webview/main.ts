@@ -21,6 +21,8 @@ const heatmapPanel = document.getElementById('heatmap-panel')!;
 const colormapSelect = document.getElementById('colormap') as HTMLSelectElement;
 const centerCheckbox = document.getElementById('center') as HTMLInputElement;
 const columnwiseCheckbox = document.getElementById('columnwise') as HTMLInputElement;
+const colorizeNumericCheckbox = document.getElementById('colorize-numeric') as HTMLInputElement;
+const colorizeDatetimeCheckbox = document.getElementById('colorize-datetime') as HTMLInputElement;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -41,10 +43,11 @@ const chunks = new Map<number, string[][]>();
 const colorChunks = new Map<number, (string | null)[][] | null>();
 const pendingChunks = new Set<number>();
 
-let heatmap = heatmapCheckbox.checked;
 let currentColormap = colormapSelect.value;
 let currentCenter = centerCheckbox.checked;
 let currentColumnwise = columnwiseCheckbox.checked;
+let currentColorizeNumeric = colorizeNumericCheckbox.checked;
+let currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -103,6 +106,8 @@ function requestReload(): void {
     colormap: currentColormap,
     center: currentCenter,
     columnwise: currentColumnwise,
+    colorizeNumeric: currentColorizeNumeric,
+    colorizeDatetime: currentColorizeDatetime,
   });
 }
 
@@ -116,19 +121,45 @@ function setRefreshing(on: boolean): void {
 function persistSettings(): void {
   vscode.postMessage({
     type: 'settings',
-    enabled: heatmap,
     colormap: currentColormap,
     center: currentCenter,
     columnwise: currentColumnwise,
+    colorizeNumeric: currentColorizeNumeric,
+    colorizeDatetime: currentColorizeDatetime,
   });
 }
 
-// Heatmap on/off is a local re-render; the colors are already loaded.
-heatmapCheckbox.addEventListener('change', () => {
-  heatmap = heatmapCheckbox.checked;
+/** The master "Heatmap" checkbox mirrors the two type toggles (select-all). */
+function syncMasterCheckbox(): void {
+  const all = currentColorizeNumeric && currentColorizeDatetime;
+  const none = !currentColorizeNumeric && !currentColorizeDatetime;
+  heatmapCheckbox.checked = all;
+  heatmapCheckbox.indeterminate = !all && !none;
+}
+
+/** A type toggle changed: update state, the master, persist, and reload. */
+function onColorizeChanged(): void {
+  currentColorizeNumeric = colorizeNumericCheckbox.checked;
+  currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
+  syncMasterCheckbox();
   persistSettings();
-  render();
+  requestReload();
+}
+colorizeNumericCheckbox.addEventListener('change', onColorizeChanged);
+colorizeDatetimeCheckbox.addEventListener('change', onColorizeChanged);
+
+// Master toggle: turn everything on if anything is off, else turn all off.
+heatmapCheckbox.addEventListener('change', () => {
+  const next = !(currentColorizeNumeric || currentColorizeDatetime);
+  currentColorizeNumeric = next;
+  currentColorizeDatetime = next;
+  colorizeNumericCheckbox.checked = next;
+  colorizeDatetimeCheckbox.checked = next;
+  syncMasterCheckbox();
+  persistSettings();
+  requestReload();
 });
+syncMasterCheckbox();
 
 // Colormap and centering both recompute colors in Python, so they reload.
 colormapSelect.addEventListener('change', () => {
@@ -284,7 +315,9 @@ function render(): void {
     }
     const localRow = i - chunkIndex * CHUNK_SIZE;
     const row = chunk?.[localRow];
-    const colorRow = heatmap ? (colorChunks.get(chunkIndex) ?? null)?.[localRow] : undefined;
+    // Colors already reflect the enabled column types (computed in Python), so
+    // we just paint whatever arrives.
+    const colorRow = (colorChunks.get(chunkIndex) ?? null)?.[localRow];
 
     const rowEl = document.createElement('div');
     rowEl.className = i % 2 === 1 ? 'row alt' : 'row';
@@ -334,4 +367,6 @@ vscode.postMessage({
   colormap: currentColormap,
   center: currentCenter,
   columnwise: currentColumnwise,
+  colorizeNumeric: currentColorizeNumeric,
+  colorizeDatetime: currentColorizeDatetime,
 });

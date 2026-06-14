@@ -11,13 +11,16 @@ in the spirit of Data Wrangler but starting small.
   auto-detected: comma, semicolon, tab, pipe) so files behave exactly like
   DataFrames viewed from a kernel
 
-- **Heatmap mode** (toolbar checkbox, on by default) — numeric cells are colored
-  by value. Colors are computed in pandas/matplotlib; non-numeric and NaN cells
-  are left uncolored. A gear button opens a settings popover with a **colormap**
-  selector (viridis, plasma, coolwarm, …), a **Center at 0** toggle (symmetric
-  range, useful with diverging colormaps), and a **Columnwise** toggle (a separate
-  vmin/vmax per column instead of one shared range); changing any recomputes colors
-  in Python on reload. The on/off, colormap, center, and columnwise choices are
+- **Heatmap mode** (toolbar checkbox, on by default) — cells are colored by value,
+  computed in pandas/matplotlib. The toolbar **Heatmap** checkbox is a tri-state
+  select-all over two type toggles in the popover: **Colorize numeric** and
+  **Colorize datetime** (dates colored by timestamp). Numeric and datetime columns
+  form separate value-range groups, so timestamps never distort the numeric range.
+  A gear button opens the popover with those toggles plus a **colormap** selector
+  (viridis, plasma, coolwarm, …), a **Center at 0** toggle (symmetric range, useful
+  with diverging colormaps), and a **Columnwise** toggle (a separate vmin/vmax per
+  column instead of one per group). Non-numeric/NaN/NaT cells stay uncolored;
+  changing any option recomputes colors in Python on reload. All choices are
   remembered (extension global state) and carry over to the next view.
   (`HEATMAP_CMAP` in `pandasTable.ts` sets the default colormap.)
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly

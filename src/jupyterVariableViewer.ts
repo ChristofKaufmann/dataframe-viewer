@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { Jupyter, Kernel } from '@vscode/jupyter-extension';
-import { buildDumpCode, DumpPayload, parsePayload, toTable } from './pandasTable';
+import { buildDumpCode, DumpPayload, HeatmapOptions, parsePayload, toTable } from './pandasTable';
 import { configureTableWebview, LoadOptions, TableData } from './tableWebview';
 
 /**
@@ -90,15 +90,7 @@ async function openVariable(
           title: `Data Viewer: loading "${variableName}"…`,
           cancellable: true,
         },
-        (_progress, token) =>
-          fetchVariable(
-            kernel,
-            variableName,
-            options.colormap,
-            options.center,
-            options.columnwise,
-            token
-          )
+        (_progress, token) => fetchVariable(kernel, variableName, options, token)
       );
       return { fileName: `${variableName} — ${notebookName}`, ...toTable(payload) };
     } catch (err) {
@@ -124,15 +116,13 @@ async function openVariable(
 async function fetchVariable(
   kernel: Kernel,
   name: string,
-  colormap: string | undefined,
-  center: boolean | undefined,
-  columnwise: boolean | undefined,
+  options: HeatmapOptions,
   token: vscode.CancellationToken
 ): Promise<DumpPayload> {
   let stdout = '';
   let textPlain = '';
   const seenMimes = new Set<string>();
-  const code = buildDumpCode(name, colormap, center, columnwise);
+  const code = buildDumpCode(name, options);
   for await (const output of kernel.executeCode(code, token)) {
     for (const item of output.items) {
       seenMimes.add(item.mime);

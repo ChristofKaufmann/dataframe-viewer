@@ -17,8 +17,12 @@ export interface LoadOptions {
   colormap?: string;
   /** Center the heatmap value range on 0 (symmetric vmin/vmax). */
   center?: boolean;
-  /** Compute the value range per column instead of once over all numerics. */
+  /** Compute the value range per column instead of per type group. */
   columnwise?: boolean;
+  /** Color numeric columns. */
+  colorizeNumeric?: boolean;
+  /** Color datetime/timedelta columns. */
+  colorizeDatetime?: boolean;
 }
 
 export interface TableHostDeps {
@@ -72,6 +76,8 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
           colormap: message.colormap,
           center: message.center,
           columnwise: message.columnwise,
+          colorizeNumeric: message.colorizeNumeric,
+          colorizeDatetime: message.colorizeDatetime,
         });
         break;
       case 'rows': {

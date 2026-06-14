@@ -5,12 +5,27 @@
 export const CHUNK_SIZE = 500;
 
 /** Webview -> extension host */
+export interface HeatmapChoices {
+  colormap?: string;
+  center?: boolean;
+  columnwise?: boolean;
+  colorizeNumeric?: boolean;
+  colorizeDatetime?: boolean;
+}
+
 export type WebviewMessage =
-  | { type: 'ready'; colormap?: string; center?: boolean; columnwise?: boolean }
-  | { type: 'refresh'; colormap?: string; center?: boolean; columnwise?: boolean }
+  | ({ type: 'ready' } & HeatmapChoices)
+  | ({ type: 'refresh' } & HeatmapChoices)
   | { type: 'rows'; chunk: number }
   /** Persist heatmap UI choices so they carry over to the next view. */
-  | { type: 'settings'; enabled: boolean; colormap: string; center: boolean; columnwise: boolean };
+  | {
+      type: 'settings';
+      colormap: string;
+      center: boolean;
+      columnwise: boolean;
+      colorizeNumeric: boolean;
+      colorizeDatetime: boolean;
+    };
 
 /** Extension host -> webview */
 export type HostMessage =

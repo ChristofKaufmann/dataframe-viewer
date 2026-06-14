@@ -126,12 +126,18 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /colormaps\["viridis"\]/);
   assert.match(code, /"colors": %s/);
   // A chosen colormap is injected safely as a JSON/Python string literal.
-  assert.match(buildDumpCode('x', 'plasma'), /colormaps\["plasma"\]/);
-  // Centering and columnwise are injected as Python booleans.
-  assert.match(buildDumpCode('x', 'viridis', true), /_center = True/);
-  assert.match(buildDumpCode('x', 'viridis', false), /_center = False/);
-  assert.match(buildDumpCode('x', 'viridis', false, true), /_columnwise = True/);
-  assert.match(buildDumpCode('x', 'viridis', false, false), /_columnwise = False/);
+  assert.match(buildDumpCode('x', { colormap: 'plasma' }), /colormaps\["plasma"\]/);
+  // The heatmap options are injected as Python booleans.
+  assert.match(buildDumpCode('x', { center: true }), /_center = True/);
+  assert.match(buildDumpCode('x', { center: false }), /_center = False/);
+  assert.match(buildDumpCode('x', { columnwise: true }), /_columnwise = True/);
+  assert.match(buildDumpCode('x', { colorizeNumeric: false }), /_do_num = False/);
+  assert.match(buildDumpCode('x', { colorizeDatetime: false }), /_do_dt = False/);
+  // Defaults: both column types are colorized.
+  assert.match(code, /_do_num = True/);
+  assert.match(code, /_do_dt = True/);
+  // Datetime columns are colored from their epoch values (separate group).
+  assert.match(code, /_np\.isnat/);
   assert.match(code, /_hi = max\(abs\(_lo\), abs\(_hi\)\)/);
   // Regression guards: no old single-name default, no dropped showIndex field.
   assert.doesNotMatch(code, /else "index"/);
