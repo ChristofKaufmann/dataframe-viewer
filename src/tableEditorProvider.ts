@@ -3,6 +3,7 @@ import {
   buildDumpCode,
   csvReadExpression,
   featherReadExpression,
+  jsonLinesReadExpression,
   parquetReadExpression,
   parsePayload,
   toTable,
@@ -70,7 +71,9 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
       ? parquetReadExpression(uri.fsPath)
       : /\.(feather|arrow)$/i.test(base)
         ? featherReadExpression(uri.fsPath)
-        : csvReadExpression(uri.fsPath);
+        : /\.(jsonl|ndjson)$/i.test(base)
+          ? jsonLinesReadExpression(uri.fsPath)
+          : csvReadExpression(uri.fsPath);
     const code = buildDumpCode(readExpr, options);
     for (;;) {
       try {

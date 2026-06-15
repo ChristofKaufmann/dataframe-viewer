@@ -6,6 +6,8 @@ dist/
 *.parquet
 *.feather
 *.arrow
+*.jsonl
+*.ndjson
 *.gz
 *.bz2
 *.zip

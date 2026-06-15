@@ -10,6 +10,8 @@ in the spirit of Data Wrangler but starting small.
 - View **CSV/TSV** files in a table, loaded with `pandas.read_csv` (delimiter
   auto-detected: comma, semicolon, tab, pipe) so files behave exactly like
   DataFrames viewed from a kernel
+- View **JSON Lines** (`*.jsonl`/`*.ndjson`) via `pandas.read_json(lines=True)`
+  (right-click → **Open in Data Viewer**, like CSV)
 - View **Parquet** (`*.parquet`/`*.pq`) and **Feather** (`*.feather`) files via
   `pandas.read_parquet`/`read_feather` — the viewer opens them by default (needs
   `pyarrow`, or `fastparquet` for Parquet, in the interpreter). `*.arrow` files
@@ -139,5 +141,4 @@ identical behavior for files and variables.
 
 ## Ideas for later
 
-- Excel / JSON Lines support
 - Column statistics

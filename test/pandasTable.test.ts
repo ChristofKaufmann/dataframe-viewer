@@ -4,6 +4,7 @@ import {
   buildDumpCode,
   csvReadExpression,
   featherReadExpression,
+  jsonLinesReadExpression,
   parquetReadExpression,
   DumpPayload,
   parsePayload,
@@ -199,6 +200,10 @@ test('parquetReadExpression reads via pd.read_parquet with an escaped path', () 
 
 test('featherReadExpression reads via pd.read_feather with an escaped path', () => {
   assert.equal(featherReadExpression('/tmp/a.feather'), 'pd.read_feather("/tmp/a.feather")');
+});
+
+test('jsonLinesReadExpression reads via pd.read_json with lines=True', () => {
+  assert.equal(jsonLinesReadExpression('/tmp/a.jsonl'), 'pd.read_json("/tmp/a.jsonl", lines=True)');
 });
 
 test('buildDumpCode reads CSV files via the delimiter-sniffing helper', () => {

@@ -289,6 +289,11 @@ export function featherReadExpression(fsPath: string): string {
   return `pd.read_feather(${JSON.stringify(fsPath)})`;
 }
 
+/** Expression reading a JSON Lines file (one record per line); no extra dep. */
+export function jsonLinesReadExpression(fsPath: string): string {
+  return `pd.read_json(${JSON.stringify(fsPath)}, lines=True)`;
+}
+
 /**
  * Extracts the payload from captured stdout. Tolerates stray prints before
  * ours by falling back to the last non-empty line.

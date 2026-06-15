@@ -27,13 +27,13 @@
         "displayName": "Data Viewer",
         "selector": [
           {
-            "filenamePattern": "*.{csv,tsv}"
+            "filenamePattern": "*.{csv,tsv,jsonl,ndjson}"
           },
           {
-            "filenamePattern": "*.{csv,tsv}.{gz,bz2,zip,xz,zst,tar}"
+            "filenamePattern": "*.{csv,tsv,jsonl,ndjson}.{gz,bz2,zip,xz,zst,tar}"
           },
           {
-            "filenamePattern": "*.{csv,tsv}.tar.{gz,xz,bz2}"
+            "filenamePattern": "*.{csv,tsv,jsonl,ndjson}.tar.{gz,xz,bz2}"
           },
           {
             "filenamePattern": "*.arrow"
@@ -87,7 +87,7 @@
       "explorer/context": [
         {
           "command": "dataViewer.open",
-          "when": "resourceFilename =~ /\\.(csv|tsv|arrow)(\\.(tar\\.gz|tar\\.xz|tar\\.bz2|gz|bz2|zip|xz|zst|tar))?$/i",
+          "when": "resourceFilename =~ /\\.(csv|tsv|jsonl|ndjson|arrow)(\\.(tar\\.gz|tar\\.xz|tar\\.bz2|gz|bz2|zip|xz|zst|tar))?$/i",
           "group": "navigation"
         }
       ],

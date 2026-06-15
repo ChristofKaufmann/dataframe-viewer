@@ -210,7 +210,8 @@ File path (`pythonRunner.ts`):
   `priority: option`; binary formats Parquet/Feather go in `dataViewer.binary`,
   `priority: default` since binary has no text view — both contributions point at
   the one provider), and pick the read expression by extension in `loadData`
-  (`csvReadExpression` / `parquetReadExpression` / `featherReadExpression`).
+  (`csvReadExpression` / `parquetReadExpression` / `featherReadExpression` /
+  `jsonLinesReadExpression`).
   Everything downstream is format-agnostic. A format that shouldn't default-open
   (e.g. the ambiguous `*.arrow`) goes in the `option` selector and the
   `explorer/context` menu's `when` clause instead, so it's reachable via
