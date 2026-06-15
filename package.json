@@ -84,7 +84,7 @@
       "explorer/context": [
         {
           "command": "dataViewer.open",
-          "when": "resourceExtname =~ /^\\.(csv|tsv)$/i",
+          "when": "resourceFilename =~ /\\.(csv|tsv)(\\.(tar\\.gz|tar\\.xz|tar\\.bz2|gz|bz2|zip|xz|zst|tar))?$/i",
           "group": "navigation"
         }
       ],
