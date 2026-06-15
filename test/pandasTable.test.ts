@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildDumpCode,
   csvReadExpression,
+  featherReadExpression,
   parquetReadExpression,
   DumpPayload,
   parsePayload,
@@ -194,6 +195,10 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
 
 test('parquetReadExpression reads via pd.read_parquet with an escaped path', () => {
   assert.equal(parquetReadExpression('/tmp/a.parquet'), 'pd.read_parquet("/tmp/a.parquet")');
+});
+
+test('featherReadExpression reads via pd.read_feather with an escaped path', () => {
+  assert.equal(featherReadExpression('/tmp/a.feather'), 'pd.read_feather("/tmp/a.feather")');
 });
 
 test('buildDumpCode reads CSV files via the delimiter-sniffing helper', () => {

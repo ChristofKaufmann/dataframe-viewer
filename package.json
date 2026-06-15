@@ -34,16 +34,19 @@
           },
           {
             "filenamePattern": "*.{csv,tsv}.tar.{gz,xz,bz2}"
+          },
+          {
+            "filenamePattern": "*.arrow"
           }
         ],
         "priority": "option"
       },
       {
-        "viewType": "dataViewer.parquet",
+        "viewType": "dataViewer.binary",
         "displayName": "Data Viewer",
         "selector": [
           {
-            "filenamePattern": "*.{parquet,pq}"
+            "filenamePattern": "*.{parquet,pq,feather}"
           },
           {
             "filenamePattern": "*.{parquet,pq}.{gz,bz2,zip,xz,zst,tar}"
@@ -84,7 +87,7 @@
       "explorer/context": [
         {
           "command": "dataViewer.open",
-          "when": "resourceFilename =~ /\\.(csv|tsv)(\\.(tar\\.gz|tar\\.xz|tar\\.bz2|gz|bz2|zip|xz|zst|tar))?$/i",
+          "when": "resourceFilename =~ /\\.(csv|tsv|arrow)(\\.(tar\\.gz|tar\\.xz|tar\\.bz2|gz|bz2|zip|xz|zst|tar))?$/i",
           "group": "navigation"
         }
       ],

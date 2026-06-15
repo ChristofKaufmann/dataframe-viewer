@@ -10,9 +10,10 @@ in the spirit of Data Wrangler but starting small.
 - View **CSV/TSV** files in a table, loaded with `pandas.read_csv` (delimiter
   auto-detected: comma, semicolon, tab, pipe) so files behave exactly like
   DataFrames viewed from a kernel
-- View **Parquet** files (`*.parquet`/`*.pq`) via `pandas.read_parquet` — the
-  viewer opens them by default (needs `pyarrow` or `fastparquet` in the
-  interpreter)
+- View **Parquet** (`*.parquet`/`*.pq`) and **Feather** (`*.feather`) files via
+  `pandas.read_parquet`/`read_feather` — the viewer opens them by default (needs
+  `pyarrow`, or `fastparquet` for Parquet, in the interpreter). `*.arrow` files
+  open via right-click → **Open in Data Viewer**
 - **Compressed** files are handled too — pandas infers the compression, so
   `data.csv.gz`, `sales.tsv.bz2`, `t.parquet.zip`, etc. (`.gz`/`.bz2`/`.zip`/
   `.xz`/`.zst`/`.tar` and `.tar.*`) open like their uncompressed forms

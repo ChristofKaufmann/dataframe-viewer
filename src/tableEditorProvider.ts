@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   buildDumpCode,
   csvReadExpression,
+  featherReadExpression,
   parquetReadExpression,
   parsePayload,
   toTable,
@@ -21,10 +22,10 @@ class TableDocument implements vscode.CustomDocument {
 }
 
 export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<TableDocument> {
-  // CSV/TSV (opt-in) and Parquet (default) share one provider; the reader is
-  // chosen per file by extension.
+  // Text formats (CSV/TSV, opt-in) and binary formats (Parquet/Feather, opened
+  // by default) share one provider; the reader is chosen per file by extension.
   static readonly viewType = 'dataViewer.table';
-  static readonly parquetViewType = 'dataViewer.parquet';
+  static readonly binaryViewType = 'dataViewer.binary';
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new TableEditorProvider(context);
@@ -35,7 +36,7 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
     return vscode.Disposable.from(
       vscode.window.registerCustomEditorProvider(TableEditorProvider.viewType, provider, options),
       vscode.window.registerCustomEditorProvider(
-        TableEditorProvider.parquetViewType,
+        TableEditorProvider.binaryViewType,
         provider,
         options
       )
@@ -65,8 +66,11 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
     // Strip a trailing compression extension before checking the data format
     // (pandas infers the compression itself), e.g. "data.parquet.gz".
     const base = uri.path.replace(/\.(tar\.gz|tar\.xz|tar\.bz2|gz|bz2|zip|xz|zst|tar)$/i, '');
-    const isParquet = /\.(parquet|pq)$/i.test(base);
-    const readExpr = isParquet ? parquetReadExpression(uri.fsPath) : csvReadExpression(uri.fsPath);
+    const readExpr = /\.(parquet|pq)$/i.test(base)
+      ? parquetReadExpression(uri.fsPath)
+      : /\.(feather|arrow)$/i.test(base)
+        ? featherReadExpression(uri.fsPath)
+        : csvReadExpression(uri.fsPath);
     const code = buildDumpCode(readExpr, options);
     for (;;) {
       try {

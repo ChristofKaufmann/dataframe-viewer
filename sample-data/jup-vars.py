@@ -64,5 +64,9 @@ durations
 # %%
 # Write parquet format and see if dtypes are preserved, when reading directly
 # from file.
-parquet_path = 'cities.parquet'
-durations.to_parquet(parquet_path)
+durations.to_parquet('cities.parquet')
+durations.to_parquet('cities.parquet.zip')
+durations.to_parquet('cities.parquet.gz')
+durations.to_csv('cities.csv.gz')
+durations.to_feather('cities.feather')
+durations.to_feather('cities.arrow')

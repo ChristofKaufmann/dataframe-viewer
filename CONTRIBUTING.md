@@ -206,11 +206,15 @@ File path (`pythonRunner.ts`):
   dtype (read_csv yields strings) — exercise that feature via a Jupyter variable
   (see `sample-data/jup-vars.py`).
 - **Adding a file format** is small: register the extension in a `customEditors`
-  selector in `package.json` (CSV/TSV is `priority: option`; Parquet is a second
-  contribution with `priority: default` since binary has no text view, both
-  pointing at the one provider), and pick the read expression by extension in
-  `loadData` (`csvReadExpression` vs `parquetReadExpression`). Everything
-  downstream is format-agnostic.
+  selector in `package.json` (text formats CSV/TSV go in `dataViewer.table`,
+  `priority: option`; binary formats Parquet/Feather go in `dataViewer.binary`,
+  `priority: default` since binary has no text view — both contributions point at
+  the one provider), and pick the read expression by extension in `loadData`
+  (`csvReadExpression` / `parquetReadExpression` / `featherReadExpression`).
+  Everything downstream is format-agnostic. A format that shouldn't default-open
+  (e.g. the ambiguous `*.arrow`) goes in the `option` selector and the
+  `explorer/context` menu's `when` clause instead, so it's reachable via
+  right-click → Open in Data Viewer without claiming the file.
 - **Compression** is mostly free: pandas infers it from the path, so the
   selectors just add brace-glob variants (`*.{csv,tsv}.{gz,bz2,zip,xz,zst,tar}`
   …), and `loadData` strips the compression suffix before the parquet-vs-csv

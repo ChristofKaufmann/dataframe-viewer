@@ -4,6 +4,8 @@ dist/
 
 # Generated/compressed data artifacts (e.g. from sample-data/jup-vars.py)
 *.parquet
+*.feather
+*.arrow
 *.gz
 *.bz2
 *.zip

@@ -284,6 +284,11 @@ export function parquetReadExpression(fsPath: string): string {
   return `pd.read_parquet(${JSON.stringify(fsPath)})`;
 }
 
+/** Expression reading a Feather/Arrow IPC file (needs pyarrow in the env). */
+export function featherReadExpression(fsPath: string): string {
+  return `pd.read_feather(${JSON.stringify(fsPath)})`;
+}
+
 /**
  * Extracts the payload from captured stdout. Tolerates stray prints before
  * ours by falling back to the last non-empty line.
