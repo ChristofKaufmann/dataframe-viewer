@@ -46,6 +46,7 @@ export function configureTableWebview(
       void updateHeatmapSettings(context, {
         colorizeNumeric: message.colorizeNumeric,
         colorizeDatetime: message.colorizeDatetime,
+        colorizeCategorical: message.colorizeCategorical,
         colormap: message.colormap,
         center: message.center,
         columnwise: message.columnwise,
@@ -93,7 +94,7 @@ function getHtml(
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
     <label id="heatmap-toggle" title="Color cells by value">
-      <input type="checkbox" id="heatmap"${settings.colorizeNumeric && settings.colorizeDatetime ? ' checked' : ''}> Heatmap
+      <input type="checkbox" id="heatmap"${settings.colorizeNumeric && settings.colorizeDatetime && settings.colorizeCategorical ? ' checked' : ''}> Heatmap
     </label>
     <div id="heatmap-menu">
       <button id="heatmap-settings" title="Heatmap settings" aria-expanded="false" aria-haspopup="true">⚙</button>
@@ -103,6 +104,9 @@ function getHtml(
         </label>
         <label class="field-check" title="Color datetime columns by their timestamp">
           <input type="checkbox" id="colorize-datetime"${settings.colorizeDatetime ? ' checked' : ''}> Colorize datetime
+        </label>
+        <label class="field-check" title="Color ordered categorical columns by rank">
+          <input type="checkbox" id="colorize-categorical"${settings.colorizeCategorical ? ' checked' : ''}> Colorize categorical
         </label>
         <label class="field">
           <span>Colormap</span>

@@ -16,11 +16,12 @@ function fakeContext(initial: Record<string, unknown> = {}) {
   } as any;
 }
 
-test('defaults to colorize both + viridis + uncentered + grouped when nothing saved', () => {
+test('defaults to colorize all + viridis + uncentered + grouped when nothing saved', () => {
   const s = getHeatmapSettings(fakeContext());
   assert.deepEqual(s, {
     colorizeNumeric: true,
     colorizeDatetime: true,
+    colorizeCategorical: true,
     colormap: 'viridis',
     center: false,
     columnwise: false,
@@ -32,6 +33,7 @@ test('round-trips saved settings', async () => {
   const saved = {
     colorizeNumeric: false,
     colorizeDatetime: true,
+    colorizeCategorical: false,
     colormap: 'plasma',
     center: true,
     columnwise: true,
@@ -45,6 +47,7 @@ test('fills in missing fields from a partial saved value', () => {
   assert.deepEqual(getHeatmapSettings(ctx), {
     colorizeNumeric: true,
     colorizeDatetime: false,
+    colorizeCategorical: true,
     colormap: 'magma',
     center: false,
     columnwise: false,

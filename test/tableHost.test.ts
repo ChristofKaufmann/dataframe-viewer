@@ -176,6 +176,7 @@ test('forwards all heatmap options from ready/refresh to load', async () => {
     columnwise: false,
     colorizeNumeric: true,
     colorizeDatetime: true,
+    colorizeCategorical: true,
   });
   await flush();
   handle({
@@ -185,12 +186,27 @@ test('forwards all heatmap options from ready/refresh to load', async () => {
     columnwise: true,
     colorizeNumeric: true,
     colorizeDatetime: false,
+    colorizeCategorical: false,
   });
   await flush();
 
   assert.deepEqual(seen, [
-    { colormap: 'viridis', center: false, columnwise: false, colorizeNumeric: true, colorizeDatetime: true },
-    { colormap: 'coolwarm', center: true, columnwise: true, colorizeNumeric: true, colorizeDatetime: false },
+    {
+      colormap: 'viridis',
+      center: false,
+      columnwise: false,
+      colorizeNumeric: true,
+      colorizeDatetime: true,
+      colorizeCategorical: true,
+    },
+    {
+      colormap: 'coolwarm',
+      center: true,
+      columnwise: true,
+      colorizeNumeric: true,
+      colorizeDatetime: false,
+      colorizeCategorical: false,
+    },
   ]);
 });
 

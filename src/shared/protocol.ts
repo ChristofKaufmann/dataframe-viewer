@@ -11,6 +11,7 @@ export interface HeatmapChoices {
   columnwise?: boolean;
   colorizeNumeric?: boolean;
   colorizeDatetime?: boolean;
+  colorizeCategorical?: boolean;
 }
 
 export type WebviewMessage =
@@ -25,6 +26,7 @@ export type WebviewMessage =
       columnwise: boolean;
       colorizeNumeric: boolean;
       colorizeDatetime: boolean;
+      colorizeCategorical: boolean;
     };
 
 /** Extension host -> webview */

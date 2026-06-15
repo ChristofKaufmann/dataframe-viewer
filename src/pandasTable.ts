@@ -36,6 +36,8 @@ export interface HeatmapOptions {
   colorizeNumeric?: boolean;
   /** Color datetime/timedelta columns by their timestamp (default true). */
   colorizeDatetime?: boolean;
+  /** Color ordered categorical columns by their rank (default true). */
+  colorizeCategorical?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
   const columnwise = options.columnwise ?? false;
   const colorizeNumeric = options.colorizeNumeric ?? true;
   const colorizeDatetime = options.colorizeDatetime ?? true;
+  const colorizeCategorical = options.colorizeCategorical ?? true;
   return [
     'def _VSCODE_dataviewer_dump():',
     '    import csv',
@@ -97,10 +100,12 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
     // Heatmap colors, computed from the original-dtype frame. Numeric, datetime
     // and timedelta columns form three separate range groups (each in its own
-    // unit, so they never distort each other). Within a group the range is
-    // shared, or per-column when columnwise; `center` makes it symmetric — but
-    // is skipped for datetimes, where the 1970 epoch origin makes 0 meaningless.
-    // Wrapped in try/except so a kernel without matplotlib still views fine.
+    // unit, so they never distort each other); within a group the range is
+    // shared, or per-column when columnwise. Ordered categoricals are colored by
+    // rank over their full 0..n-1 code range (always per-column). `center` makes
+    // a range symmetric but is skipped for datetimes (arbitrary epoch origin) and
+    // categoricals (0 is just the first category). Wrapped in try/except so a
+    // kernel without matplotlib still views fine.
     '    colors = None',
     '    try:',
     '        import numpy as _np',
@@ -110,9 +115,11 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
     `        _columnwise = ${columnwise ? 'True' : 'False'}`,
     `        _do_num = ${colorizeNumeric ? 'True' : 'False'}`,
     `        _do_dt = ${colorizeDatetime ? 'True' : 'False'}`,
+    `        _do_cat = ${colorizeCategorical ? 'True' : 'False'}`,
     '        _ncols, _nrows = _raw.shape[1], _raw.shape[0]',
     '        _vals = [None] * _ncols',
     '        _grp = [None] * _ncols',
+    '        _fixed = [None] * _ncols',
     '        for _i in range(_ncols):',
     '            _c = _raw.iloc[:, _i]',
     '            if _do_num and pd.api.types.is_numeric_dtype(_c) and not pd.api.types.is_bool_dtype(_c):',
@@ -124,6 +131,12 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
     '                _f[_np.isnat(_a)] = _np.nan',
     '                _vals[_i] = _f',
     '                _grp[_i] = "datetime" if pd.api.types.is_datetime64_any_dtype(_c) else "timedelta"',
+    '            elif _do_cat and isinstance(_c.dtype, pd.CategoricalDtype) and _c.dtype.ordered:',
+    '                _codes = _c.cat.codes.to_numpy().astype("float64")',
+    '                _codes[_codes < 0] = _np.nan',
+    '                _vals[_i] = _codes',
+    '                _grp[_i] = "categorical"',
+    '                _fixed[_i] = (0.0, float(len(_c.dtype.categories) - 1))',
     '        def _grange(_g):',
     '            _members = [_vals[_i] for _i in range(_ncols) if _grp[_i] == _g]',
     '            if not _members:',
@@ -140,7 +153,9 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
     '                _mask = _np.isfinite(_arr)',
     '                if not _mask.any():',
     '                    continue',
-    '                if _columnwise:',
+    '                if _fixed[_i] is not None:',
+    '                    _lo, _hi = _fixed[_i]',
+    '                elif _columnwise:',
     '                    _cf = _arr[_mask]',
     '                    _lo, _hi = float(_cf.min()), float(_cf.max())',
     '                else:',
@@ -148,7 +163,7 @@ export function buildDumpCode(objExpr: string, options: HeatmapOptions = {}): st
     '                    if _r is None:',
     '                        continue',
     '                    _lo, _hi = _r',
-    '                if _center and _grp[_i] != "datetime":',
+    '                if _center and _grp[_i] not in ("datetime", "categorical"):',
     '                    _hi = max(abs(_lo), abs(_hi))',
     '                    _lo = -_hi',
     '                _denom = (_hi - _lo) or 1.0',

@@ -13,9 +13,11 @@ in the spirit of Data Wrangler but starting small.
 
 - **Heatmap mode** (toolbar checkbox, on by default) — cells are colored by value,
   computed in pandas/matplotlib. The toolbar **Heatmap** checkbox is a tri-state
-  select-all over two type toggles in the popover: **Colorize numeric** and
-  **Colorize datetime** (dates colored by timestamp). Numeric and datetime columns
-  form separate value-range groups, so timestamps never distort the numeric range.
+  select-all over three type toggles in the popover: **Colorize numeric**,
+  **Colorize datetime** (by timestamp), and **Colorize categorical** (ordered
+  categoricals only, by rank). Numeric, datetime and timedelta columns each form a
+  separate value-range group so they never distort each other; ordered categoricals
+  are ranked per column over their full set of categories.
   A gear button opens the popover with those toggles plus a **colormap** selector
   (viridis, plasma, coolwarm, …) with a small preview swatch, a **Center at 0**
   toggle (symmetric range, useful

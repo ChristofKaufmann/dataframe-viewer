@@ -23,6 +23,8 @@ export interface LoadOptions {
   colorizeNumeric?: boolean;
   /** Color datetime/timedelta columns. */
   colorizeDatetime?: boolean;
+  /** Color ordered categorical columns by rank. */
+  colorizeCategorical?: boolean;
 }
 
 export interface TableHostDeps {
@@ -78,6 +80,7 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
           columnwise: message.columnwise,
           colorizeNumeric: message.colorizeNumeric,
           colorizeDatetime: message.colorizeDatetime,
+          colorizeCategorical: message.colorizeCategorical,
         });
         break;
       case 'rows': {

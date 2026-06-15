@@ -133,15 +133,20 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(buildDumpCode('x', { columnwise: true }), /_columnwise = True/);
   assert.match(buildDumpCode('x', { colorizeNumeric: false }), /_do_num = False/);
   assert.match(buildDumpCode('x', { colorizeDatetime: false }), /_do_dt = False/);
-  // Defaults: both column types are colorized.
+  assert.match(buildDumpCode('x', { colorizeCategorical: false }), /_do_cat = False/);
+  // Defaults: all column types are colorized.
   assert.match(code, /_do_num = True/);
   assert.match(code, /_do_dt = True/);
+  assert.match(code, /_do_cat = True/);
   // Datetime columns are colored from their epoch values (separate group).
   assert.match(code, /_np\.isnat/);
   assert.match(code, /_hi = max\(abs\(_lo\), abs\(_hi\)\)/);
-  // Three range groups; centering is skipped for datetimes (arbitrary epoch).
   assert.match(code, /"datetime" if .* else "timedelta"/);
-  assert.match(code, /_center and _grp\[_i\] != "datetime"/);
+  // Ordered categoricals are colored by code over a fixed 0..n-1 range.
+  assert.match(code, /_c\.dtype\.ordered/);
+  assert.match(code, /_c\.cat\.codes/);
+  // Centering is skipped for datetimes (arbitrary epoch) and categoricals.
+  assert.match(code, /_center and _grp\[_i\] not in \("datetime", "categorical"\)/);
   // Regression guards: no old single-name default, no dropped showIndex field.
   assert.doesNotMatch(code, /else "index"/);
   assert.doesNotMatch(code, /showIndex/);

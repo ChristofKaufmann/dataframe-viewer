@@ -9,6 +9,7 @@ import { HEATMAP_CMAP } from './pandasTable';
 export interface HeatmapSettings {
   colorizeNumeric: boolean;
   colorizeDatetime: boolean;
+  colorizeCategorical: boolean;
   colormap: string;
   center: boolean;
   columnwise: boolean;
@@ -21,6 +22,7 @@ export function getHeatmapSettings(context: vscode.ExtensionContext): HeatmapSet
   return {
     colorizeNumeric: saved.colorizeNumeric ?? true,
     colorizeDatetime: saved.colorizeDatetime ?? true,
+    colorizeCategorical: saved.colorizeCategorical ?? true,
     colormap: saved.colormap ?? HEATMAP_CMAP,
     center: saved.center ?? false,
     columnwise: saved.columnwise ?? false,

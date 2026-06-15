@@ -25,6 +25,7 @@ const centerCheckbox = document.getElementById('center') as HTMLInputElement;
 const columnwiseCheckbox = document.getElementById('columnwise') as HTMLInputElement;
 const colorizeNumericCheckbox = document.getElementById('colorize-numeric') as HTMLInputElement;
 const colorizeDatetimeCheckbox = document.getElementById('colorize-datetime') as HTMLInputElement;
+const colorizeCategoricalCheckbox = document.getElementById('colorize-categorical') as HTMLInputElement;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -50,6 +51,7 @@ let currentCenter = centerCheckbox.checked;
 let currentColumnwise = columnwiseCheckbox.checked;
 let currentColorizeNumeric = colorizeNumericCheckbox.checked;
 let currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
+let currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -110,6 +112,7 @@ function requestReload(): void {
     columnwise: currentColumnwise,
     colorizeNumeric: currentColorizeNumeric,
     colorizeDatetime: currentColorizeDatetime,
+    colorizeCategorical: currentColorizeCategorical,
   });
 }
 
@@ -128,13 +131,14 @@ function persistSettings(): void {
     columnwise: currentColumnwise,
     colorizeNumeric: currentColorizeNumeric,
     colorizeDatetime: currentColorizeDatetime,
+    colorizeCategorical: currentColorizeCategorical,
   });
 }
 
-/** The master "Heatmap" checkbox mirrors the two type toggles (select-all). */
+/** The master "Heatmap" checkbox mirrors the type toggles (select-all). */
 function syncMasterCheckbox(): void {
-  const all = currentColorizeNumeric && currentColorizeDatetime;
-  const none = !currentColorizeNumeric && !currentColorizeDatetime;
+  const all = currentColorizeNumeric && currentColorizeDatetime && currentColorizeCategorical;
+  const none = !currentColorizeNumeric && !currentColorizeDatetime && !currentColorizeCategorical;
   heatmapCheckbox.checked = all;
   heatmapCheckbox.indeterminate = !all && !none;
 }
@@ -143,20 +147,24 @@ function syncMasterCheckbox(): void {
 function onColorizeChanged(): void {
   currentColorizeNumeric = colorizeNumericCheckbox.checked;
   currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
+  currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
   syncMasterCheckbox();
   persistSettings();
   requestReload();
 }
 colorizeNumericCheckbox.addEventListener('change', onColorizeChanged);
 colorizeDatetimeCheckbox.addEventListener('change', onColorizeChanged);
+colorizeCategoricalCheckbox.addEventListener('change', onColorizeChanged);
 
 // Master toggle: turn everything on if anything is off, else turn all off.
 heatmapCheckbox.addEventListener('change', () => {
-  const next = !(currentColorizeNumeric || currentColorizeDatetime);
+  const next = !(currentColorizeNumeric || currentColorizeDatetime || currentColorizeCategorical);
   currentColorizeNumeric = next;
   currentColorizeDatetime = next;
+  currentColorizeCategorical = next;
   colorizeNumericCheckbox.checked = next;
   colorizeDatetimeCheckbox.checked = next;
+  colorizeCategoricalCheckbox.checked = next;
   syncMasterCheckbox();
   persistSettings();
   requestReload();
@@ -378,4 +386,5 @@ vscode.postMessage({
   columnwise: currentColumnwise,
   colorizeNumeric: currentColorizeNumeric,
   colorizeDatetime: currentColorizeDatetime,
+  colorizeCategorical: currentColorizeCategorical,
 });
