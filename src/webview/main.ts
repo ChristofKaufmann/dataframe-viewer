@@ -242,14 +242,23 @@ function initLayout(sample: string[][]): void {
   for (let c = 0; c < columns.length; c++) {
     const values = sample.map((row) => row[c] ?? '');
     numericCols.push(isNumericColumn(values));
-    // The dtype glyph on a header needs ~2 extra characters of room.
-    const glyphPad = columnTypes?.[c] ? 2 : 0;
     const manual = manualWidths.get(columns[c]);
-    colWidths.push(manual ?? autoWidth(maxChars(columns[c], values) + glyphPad));
+    colWidths.push(manual ?? autoWidth(maxChars(columns[c], values) + headerPad(c)));
   }
 
   buildHeader();
   applyLayout();
+}
+
+/**
+ * Extra header-width allowance (in characters) for the chrome that sits beside
+ * the name: the dtype glyph, and on data columns the sort handle (+ its
+ * priority badge).
+ */
+function headerPad(c: number): number {
+  const glyphPad = columnTypes?.[c] ? 2 : 0;
+  const sortPad = c >= 1 ? 2 : 0;
+  return glyphPad + sortPad;
 }
 
 /** (Re)builds the header row: type glyph + name + (data columns) sort control. */
@@ -375,7 +384,7 @@ function autoFit(col: number): void {
       values.push(row[col] ?? '');
     }
   }
-  colWidths[col] = autoWidth(maxChars(columns[col], values));
+  colWidths[col] = autoWidth(maxChars(columns[col], values) + headerPad(col));
   manualWidths.set(columns[col], colWidths[col]);
   applyLayout();
   render();

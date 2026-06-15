@@ -240,6 +240,9 @@ body {
   display: flex;
   align-items: center;
   font-weight: 600;
+  /* visible so the resize grip can overhang past the column boundary; the
+     label clips itself via its own overflow, so the name still truncates. */
+  overflow: visible;
   background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
   border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35));
 }
@@ -260,7 +263,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 1px;
-  margin: 0 9px 0 4px;
+  /* right margin clears the resize grip so the sort click doesn't hit it */
+  margin: 0 2px 0 4px;
   color: var(--vscode-descriptionForeground);
   cursor: pointer;
 }
@@ -299,16 +303,25 @@ body {
 .resize-handle {
   position: absolute;
   top: 0;
-  right: 0;
-  width: 8px;
+  /* straddle the column boundary: 6px to its left, 3px into the next column */
+  right: -3px;
+  width: 9px;
   height: 100%;
   cursor: col-resize;
   z-index: 5;
 }
 
-.resize-handle:hover,
-.resize-handle.active {
-  box-shadow: inset -2px 0 0 var(--vscode-focusBorder, #007fd4);
+/* The hover/active indicator line sits on the boundary (3px from the grip's
+   right edge), not at the grip's overhang. */
+.resize-handle:hover::after,
+.resize-handle.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  width: 2px;
+  background: var(--vscode-focusBorder, #007fd4);
 }
 
 body.resizing {
