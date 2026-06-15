@@ -82,6 +82,10 @@ busy guard against overlapping reloads), the heatmap text-contrast helper
 Press **F5** in VS Code to launch an Extension Development Host with the
 extension loaded, then open `sample-data/cities.csv` with it.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the non-obvious internals — the
+pandas-engine model, the generated-Python rules, the heatmap reload model, and
+the test/verification workflow.
+
 ## Architecture
 
 - `src/extension.ts` — activation, `dataViewer.open` command
