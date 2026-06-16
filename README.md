@@ -51,12 +51,16 @@ in the spirit of Data Wrangler but starting small.
   Clicking the funnel again hides the bar and disables the filter temporarily
   (the data goes back to unfiltered) while keeping the expression; clicking once
   more re-applies it
-- **Column statistics** — a row just under the header (on by default, toggled by
-  the **Σ** toolbar button) shows the **missing-value count** per column with its
-  share of the rows, e.g. `3 (30%)`. Counts are computed in pandas over the full
-  (filtered) data, so they stay exact even when the view is truncated, and they
-  update with the filter; toggling the row is instant (no reload). More stats and
-  small plots are planned for this section
+- **Column statistics** — sub-rows under the header (on by default), computed in
+  pandas over the full (filtered) data so they stay exact even when the view is
+  truncated, update with the filter, and toggle instantly (no reload):
+  - **Missing values** (**Σ** button): the missing-value count per column with
+    its share of the rows, e.g. `3 (30%)`
+  - **Distributions** (**graph** button): a small histogram per numeric column
+    (`np.histogram`, 16 bins over non-null values), drawn as an inline SVG that
+    scales to the column width; empty bins keep a minimum bar so the full spread
+    stays visible. Hovering a bar pops up an immediate bubble with that bin's
+    range and count
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
 - Each column header (the index too) shows a dimmed **dtype glyph** — codicon
@@ -150,5 +154,5 @@ identical behavior for files and variables.
 
 ## Ideas for later
 
-- More column statistics (min/max/mean, distinct counts) and small
-  distribution plots in the statistics row
+- More column statistics (min/max/mean, distinct counts) and richer plots
+  (datetime/timedelta histograms, per-bin hover) in the statistics rows

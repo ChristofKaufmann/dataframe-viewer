@@ -8,6 +8,9 @@ import { ColumnStat, ColumnType, SortKey } from './shared/protocol';
 
 export const MAX_ROWS = 100_000;
 
+/** Number of equal-width bins in the per-column numeric histogram. */
+export const HIST_BINS = 16;
+
 /** Colormap applied to numeric values for the heatmap (any matplotlib name). */
 export const HEATMAP_CMAP = 'viridis';
 
@@ -145,18 +148,38 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '            pass',
     '    total = len(obj)',
     // Per-column summary stats over the *full* filtered frame (not the truncated
-    // head, so counts are exact). Aligned index-first like column_types. For now
-    // just the missing (NaN/NaT/None) count, which is meaningful for every dtype.
+    // head, so counts are exact). Aligned index-first like column_types. The
+    // missing (NaN/NaT/None) count is meaningful for every dtype; numeric data
+    // columns also get an equal-width histogram (np.histogram returns counts +
+    // edges in one call) over their non-null values.
     '    stats = None',
     '    try:',
+    '        import numpy as _np',
     '        def _missing(_x):',
     '            try:',
     '                return int(pd.isna(_x).sum())',
     '            except Exception:',
     '                return 0',
+    '        def _hist(_c):',
+    '            try:',
+    '                if not pd.api.types.is_numeric_dtype(_c) or pd.api.types.is_bool_dtype(_c):',
+    '                    return None',
+    '                _v = _c.to_numpy(dtype="float64")',
+    '                _v = _v[_np.isfinite(_v)]',
+    '                if not _v.size:',
+    '                    return None',
+    `                _counts, _edges = _np.histogram(_v, bins=${HIST_BINS})`,
+    '                return {"counts": [int(_n) for _n in _counts], "min": float(_edges[0]), "max": float(_edges[-1])}',
+    '            except Exception:',
+    '                return None',
     '        stats = [{"missing": _missing(obj.index)}]',
     '        for _i in range(obj.shape[1]):',
-    '            stats.append({"missing": _missing(obj.iloc[:, _i])})',
+    '            _col = obj.iloc[:, _i]',
+    '            _entry = {"missing": _missing(_col)}',
+    '            _h = _hist(_col)',
+    '            if _h is not None:',
+    '                _entry["histogram"] = _h',
+    '            stats.append(_entry)',
     '    except Exception:',
     '        stats = None',
     `    head = obj.head(${MAX_ROWS}).copy()`,

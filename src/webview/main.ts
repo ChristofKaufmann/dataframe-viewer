@@ -12,7 +12,7 @@ import { steppedGradient } from './colormaps';
 import { dtypeGlyph } from './dtypes';
 import { cycleSort, sortState } from './sorting';
 import { filterPlaceholder } from './filterHint';
-import { formatPercent } from './stats';
+import { binIndexAt, formatPercent, histogramBin, histogramSvg } from './stats';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -42,6 +42,7 @@ const filterInput = document.getElementById('filter-input') as HTMLInputElement;
 const filterClear = document.getElementById('filter-clear') as HTMLButtonElement;
 const filterError = document.getElementById('filter-error')!;
 const statsToggle = document.getElementById('stats-toggle') as HTMLButtonElement;
+const histToggle = document.getElementById('hist-toggle') as HTMLButtonElement;
 const statsRow = document.getElementById('stats-row')!;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
@@ -288,53 +289,87 @@ filterClear.addEventListener('click', () => {
   filterInput.focus();
 });
 
-// Statistics row: the Σ button shows/hides it. The counts ride along with every
-// load, so toggling is purely client-side (no reload needed).
-statsToggle.addEventListener('click', () => {
-  if (statsToggle.disabled) {
-    return;
-  }
-  const shown = !document.body.classList.contains('stats-shown');
-  document.body.classList.toggle('stats-shown', shown);
-  statsToggle.classList.toggle('active', shown);
-  statsToggle.setAttribute('aria-pressed', String(shown));
-});
-
-// Shown by default; buildStatsRow() hides it again if the source has no stats.
-document.body.classList.add('stats-shown');
-statsToggle.classList.add('active');
-statsToggle.setAttribute('aria-pressed', 'true');
+// Statistics rows: Σ toggles the missing-counts row, the graph button toggles
+// the histogram row. Both ride along with every load, so toggling is purely a
+// CSS show/hide (no reload). Hiding a sub-row's cells via display:none lets the
+// other sub-row's cells reflow to the top of the grid, so no rebuild is needed.
+function wireStatsToggle(btn: HTMLButtonElement, bodyClass: string): void {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) {
+      return;
+    }
+    const shown = !document.body.classList.contains(bodyClass);
+    document.body.classList.toggle(bodyClass, shown);
+    btn.classList.toggle('active', shown);
+    btn.setAttribute('aria-pressed', String(shown));
+  });
+  // Both rows are shown by default; buildStatsRow() disables them if the source
+  // produced no stats.
+  document.body.classList.add(bodyClass);
+  btn.classList.add('active');
+  btn.setAttribute('aria-pressed', 'true');
+}
+wireStatsToggle(statsToggle, 'stats-missing');
+wireStatsToggle(histToggle, 'stats-hist');
 
 /**
- * (Re)builds the stats row to match `columns`: the leftmost (sticky) cell
- * labels the row, and each data column shows its missing-value count. Disables
- * the Σ toggle when the source produced no stats.
+ * (Re)builds the stats section to match `columns`: a "missing" sub-row (counts)
+ * and a "distribution" sub-row (numeric histograms), each a labelled grid row
+ * aligned to the columns. Both are always built; the toggles show/hide them via
+ * CSS. Disables the toggles when the source produced no stats.
  */
 function buildStatsRow(): void {
   statsRow.replaceChildren();
   if (!columnStats) {
-    statsToggle.disabled = true;
-    document.body.classList.remove('stats-shown');
-    statsToggle.classList.remove('active');
-    statsToggle.setAttribute('aria-pressed', 'false');
+    for (const [btn, cls] of [
+      [statsToggle, 'stats-missing'],
+      [histToggle, 'stats-hist'],
+    ] as const) {
+      btn.disabled = true;
+      document.body.classList.remove(cls);
+      btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', 'false');
+    }
     return;
   }
   statsToggle.disabled = false;
+  histToggle.disabled = false;
 
+  // Missing-counts sub-row.
   for (let c = 0; c < columns.length; c++) {
     const cell = document.createElement('div');
     if (c === 0) {
-      cell.className = 'cell stat indexcol';
+      cell.className = 'cell stat stat-missing indexcol';
       cell.textContent = 'missing';
       cell.title = 'Missing (NaN/NaT/None) values per column';
     } else {
       const missing = columnStats[c]?.missing ?? 0;
-      cell.className = 'cell stat';
+      cell.className = 'cell stat stat-missing';
       const pct = rowTotal > 0 ? formatPercent((missing / rowTotal) * 100) : '';
       cell.textContent = `${missing.toLocaleString()} (${pct})`;
       cell.title = `${missing.toLocaleString()} of ${rowTotal.toLocaleString()} missing${
         pct ? ` (${pct})` : ''
       }`;
+    }
+    statsRow.appendChild(cell);
+  }
+
+  // Distribution (histogram) sub-row: numeric columns get bars, others blank.
+  for (let c = 0; c < columns.length; c++) {
+    const cell = document.createElement('div');
+    if (c === 0) {
+      cell.className = 'cell stat stat-hist indexcol';
+      cell.textContent = 'distribution';
+      cell.title = 'Value distribution (numeric columns)';
+    } else {
+      cell.className = 'cell stat stat-hist';
+      const hist = columnStats[c]?.histogram;
+      if (hist && hist.counts.length) {
+        cell.innerHTML = histogramSvg(hist.counts);
+        // Per-bin details come from a custom hover bubble (see below), not the
+        // slow native title; data-col lets the delegated handler find the stats.
+        cell.dataset.col = String(c);
+      }
     }
     statsRow.appendChild(cell);
   }
@@ -346,6 +381,54 @@ function applyStatsLayout(): void {
   statsRow.style.gridTemplateColumns = gridTemplate;
   statsRow.style.width = `${colWidths.reduce((a, b) => a + b, 0)}px`;
 }
+
+// Custom hover bubble for histogram bars: it shows immediately above the bin
+// under the cursor (the native `title` is slow and OS-positioned). It's fixed
+// and lives on <body> so the scroller/cell `overflow` can't clip it. The bin is
+// derived from the cursor's position over the SVG, so it works across the gaps
+// between bars without per-bar hit targets.
+const histBubble = document.createElement('div');
+histBubble.id = 'hist-bubble';
+histBubble.style.transform = 'translateX(-50%)';
+document.body.appendChild(histBubble);
+
+function hideHistBubble(): void {
+  histBubble.classList.remove('visible');
+}
+
+function showHistBubble(e: MouseEvent): void {
+  const cell = (e.target as Element).closest('.cell.stat-hist') as HTMLElement | null;
+  const col = cell?.dataset.col ? Number(cell.dataset.col) : -1;
+  const hist = col >= 0 ? columnStats?.[col]?.histogram : undefined;
+  const svg = cell?.querySelector('svg');
+  if (!hist || !svg) {
+    hideHistBubble();
+    return;
+  }
+  const rect = svg.getBoundingClientRect();
+  const bins = hist.counts.length;
+  const bin = binIndexAt((e.clientX - rect.left) / rect.width, bins);
+  const { lo, hi, count } = histogramBin(hist, bin);
+  const total = hist.counts.reduce((a, b) => a + b, 0);
+  const pct = total > 0 ? ` (${formatPercent((count / total) * 100)})` : '';
+  const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 3 });
+  histBubble.innerHTML =
+    `<div class="hb-range">${num(lo)} – ${num(hi)}</div>` +
+    `<div class="hb-count">${count.toLocaleString()}${pct}</div>`;
+
+  // Center over the bin and sit above the bar, flipping below if it'd clip the top.
+  histBubble.classList.add('visible');
+  const { height } = histBubble.getBoundingClientRect();
+  const x = rect.left + ((bin + 0.5) / bins) * rect.width;
+  const gap = 7;
+  const above = rect.top - gap - height >= 2;
+  histBubble.dataset.placement = above ? 'top' : 'bottom';
+  histBubble.style.left = `${x}px`;
+  histBubble.style.top = `${above ? rect.top - gap - height : rect.bottom + gap}px`;
+}
+
+statsRow.addEventListener('mousemove', showHistBubble);
+statsRow.addEventListener('mouseleave', hideHistBubble);
 
 /** Shows/clears the filter error from the last load (data shown unfiltered). */
 function showFilterError(message: string | null): void {

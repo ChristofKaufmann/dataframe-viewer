@@ -98,7 +98,8 @@ function getHtml(
   <div id="toolbar">
     <button id="refresh" title="Reload data from its source"><span class="icon">↻</span></button>
     <button id="filter-toggle" title="Filter rows" aria-expanded="false"><span class="codicon codicon-filter"></span></button>
-    <button id="stats-toggle" title="Show column statistics (missing-value counts)" aria-pressed="false"><span class="icon">Σ</span></button>
+    <button id="stats-toggle" title="Show missing-value counts" aria-pressed="false"><span class="icon">Σ</span></button>
+    <button id="hist-toggle" title="Show value distributions (histograms)" aria-pressed="false"><span class="codicon codicon-graph"></span></button>
     <label id="heatmap-toggle" title="Color cells by value">
       <input type="checkbox" id="heatmap"${settings.colorizeNumeric && settings.colorizeDatetime && settings.colorizeCategorical ? ' checked' : ''}> Heatmap
     </label>

@@ -12,3 +12,59 @@ export function formatPercent(p: number): string {
   }
   return `${p.toFixed(1)}%`;
 }
+
+// Histogram drawing constants, in viewBox units (the SVG stretches to the cell
+// via preserveAspectRatio="none", so these are resolution-independent).
+const HIST_VIEW_H = 100;
+/** Minimum bar height so even empty bins stay visible as a baseline tick. */
+const HIST_MIN_BAR = 8;
+/** Fraction of each bin's slot left as a gap between bars. */
+const HIST_BAR_GAP = 0.15;
+
+/**
+ * Builds an inline SVG bar chart for a numeric column's histogram. The viewBox
+ * is `0 0 <bins> 100` with `preserveAspectRatio="none"`, so the chart scales to
+ * whatever width/height the cell has — it never needs rebuilding on resize.
+ * Bars are scaled to the tallest bin; empty bins still get HIST_MIN_BAR so the
+ * full extent of the distribution stays visible.
+ */
+export function histogramSvg(counts: number[]): string {
+  const n = counts.length;
+  const max = counts.reduce((a, b) => Math.max(a, b), 0);
+  const round = (v: number) => Math.round(v * 100) / 100;
+  const rects = counts
+    .map((count, i) => {
+      const ratio = max > 0 ? count / max : 0;
+      const h = HIST_MIN_BAR + ratio * (HIST_VIEW_H - HIST_MIN_BAR);
+      const x = i + HIST_BAR_GAP / 2;
+      const w = 1 - HIST_BAR_GAP;
+      return `<rect x="${round(x)}" y="${round(HIST_VIEW_H - h)}" width="${round(w)}" height="${round(h)}"/>`;
+    })
+    .join('');
+  return `<svg class="hist" viewBox="0 0 ${n} ${HIST_VIEW_H}" preserveAspectRatio="none">${rects}</svg>`;
+}
+
+/** A numeric column's histogram (equal-width bins), as shipped in `ColumnStat`. */
+export interface Histogram {
+  counts: number[];
+  min: number;
+  max: number;
+}
+
+/**
+ * Bin index under a horizontal position given as a 0..1 fraction of the chart
+ * width, clamped into range (so the edges still map to the first/last bin).
+ */
+export function binIndexAt(fraction: number, bins: number): number {
+  return Math.max(0, Math.min(bins - 1, Math.floor(fraction * bins)));
+}
+
+/** Edge values [lo, hi) and count for bin `i` of an equal-width histogram. */
+export function histogramBin(hist: Histogram, i: number): { lo: number; hi: number; count: number } {
+  const width = (hist.max - hist.min) / hist.counts.length;
+  return {
+    lo: hist.min + i * width,
+    hi: hist.min + (i + 1) * width,
+    count: hist.counts[i] ?? 0,
+  };
+}

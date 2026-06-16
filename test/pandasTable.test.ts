@@ -4,6 +4,7 @@ import {
   buildDumpCode,
   csvReadExpression,
   featherReadExpression,
+  HIST_BINS,
   jsonLinesReadExpression,
   parquetReadExpression,
   DumpPayload,
@@ -186,6 +187,11 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /stats = \[\{"missing": _missing\(obj\.index\)\}\]/);
   // Stats are counted before the head() truncation so they stay exact.
   assert.ok(code.indexOf('_missing(obj.index)') < code.indexOf(`head = obj.head(`));
+  // Numeric (non-bool) columns also get an equal-width histogram via numpy,
+  // over non-null values, attached only when computable.
+  assert.match(code, new RegExp(`_np\\.histogram\\(_v, bins=${HIST_BINS}\\)`));
+  assert.match(code, /_v\[_np\.isfinite\(_v\)\]/);
+  assert.match(code, /_entry\["histogram"\] = _h/);
   // Sorting: empty by default; a stable multi-key sort when keys are given.
   assert.match(code, /_sort = \[\]/);
   const sorted = buildDumpCode('df', { sort: [{ column: 2, descending: true }, { column: 0, descending: false }] });

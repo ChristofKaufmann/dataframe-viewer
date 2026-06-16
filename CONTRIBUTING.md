@@ -159,18 +159,38 @@ is per-view like sort (rides on `ready`/`refresh`, not persisted).
 
 ## Column statistics
 
-The stats row under the header is different from heatmap/sort/filter: it does
-**not** trigger a reload. The per-column stats (currently just the
-missing-value count) are computed in `buildDumpCode` over the **full filtered
-`obj`** — before the `head(MAX_ROWS)` truncation, so counts stay exact on big
-tables — and ride along in the payload's `stats` field (aligned index-first,
-like `columnTypes`). They're always shipped, so the **Σ** toggle is pure
-client-side show/hide (`body.stats-shown`), instant and free. The row is a third
-sticky grid in the scroller (`#stats-row`, between `#header` and `#body`),
-aligned to the column widths via `applyStatsLayout()`; its leftmost (sticky)
-cell labels the row instead of showing the index's own count, which leaves room
-to add more stat rows (and later small plots) under the same header. When adding
-a stat, extend `ColumnStat` and the Python `stats` list together.
+The stats section under the header is different from heatmap/sort/filter: it does
+**not** trigger a reload. All per-column stats are computed in `buildDumpCode`
+over the **full filtered `obj`** — before the `head(MAX_ROWS)` truncation, so
+they stay exact on big tables — and ride along in the payload's `stats` field
+(aligned index-first, like `columnTypes`). They're always shipped, so the
+toggles are pure client-side show/hide, instant and free.
+
+The section is a third sticky grid in the scroller (`#stats-row`, between
+`#header` and `#body`), aligned to the column widths via `applyStatsLayout()`. It
+holds two **sub-rows**, each a labelled grid row: missing counts (**Σ**,
+`body.stats-missing`) and numeric histograms (**graph** button,
+`body.stats-hist`). Both sub-rows are always built; a toggle only flips its body
+class, and CSS hides the inactive sub-row's cells (`display:none`) so the other
+**reflows up** to the top of the grid — no rebuild on toggle. Each sub-row's
+leftmost (sticky) cell labels it instead of showing the index's own value.
+
+The histogram is computed with `np.histogram(col.dropna(), bins=HIST_BINS)` (one
+call → counts + edges; only `counts`/`min`/`max` cross the wire) and drawn by the
+pure `histogramSvg()` in `webview/stats.ts`: a `viewBox="0 0 bins 100"` SVG with
+`preserveAspectRatio="none"`, so it stretches to the cell and **never rebuilds on
+resize**. Empty bins still get `HIST_MIN_BAR` so the spread stays visible.
+
+Per-bin details use a **custom hover bubble** (`#hist-bubble`), not the slow
+native `title`. It's `position:fixed` on `<body>` (so the scroller/cell
+`overflow` can't clip it) with `pointer-events:none`, and a delegated `mousemove`
+on `#stats-row` derives the bin from the cursor's position over the SVG
+(`binIndexAt`/`histogramBin`, both pure) — no per-bar hit targets needed. It's
+centered over the bin and flips above/below the bar near the viewport top.
+
+When adding a stat: extend `ColumnStat` and the Python `stats` list together, add
+a sub-row in `buildStatsRow` (tagged with a `stat-*` class + a body toggle), and
+keep any formatting/geometry in the pure `webview/stats.ts` so it's unit-tested.
 
 ## Webview specifics
 

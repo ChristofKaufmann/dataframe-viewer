@@ -23,6 +23,12 @@ export interface ColumnType {
 export interface ColumnStat {
   /** Count of missing (NaN/NaT/None) values across all rows, before truncation. */
   missing: number;
+  /**
+   * Equal-width histogram for numeric columns (over non-null values), or absent
+   * for non-numeric columns. Bin edges are derivable from `min`/`max` and
+   * `counts.length`, so only the counts and range cross the wire.
+   */
+  histogram?: { counts: number[]; min: number; max: number };
 }
 
 /** Webview -> extension host */
