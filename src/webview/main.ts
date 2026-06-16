@@ -363,17 +363,33 @@ function buildStatsRow(): void {
     statsRow.appendChild(cell);
   }
 
-  // Distribution (histogram) sub-row: numeric columns get bars, others blank.
+  // Distribution sub-row: numeric columns get a histogram, ordered categoricals
+  // a colored bar-per-category, others blank.
   for (let c = 0; c < columns.length; c++) {
     const cell = document.createElement('div');
     if (c === 0) {
       cell.className = 'cell stat stat-hist indexcol';
       cell.textContent = 'distribution';
-      cell.title = 'Value distribution (numeric columns)';
+      cell.title = 'Value distribution (numeric and ordinal columns)';
     } else {
       cell.className = 'cell stat stat-hist';
       const hist = columnStats[c]?.histogram;
-      if (hist && hist.counts.length) {
+      const bars = columnStats[c]?.bars;
+      if (bars && bars.counts.length) {
+        cell.innerHTML = histogramSvg(bars.counts);
+        // Tint each bar with its category's heatmap color (DOM .style.fill is
+        // CSP-safe and overrides the default fill from the stylesheet).
+        if (bars.colors) {
+          const rects = cell.querySelectorAll('rect');
+          bars.colors.forEach((color, i) => {
+            const rect = rects[i] as SVGElement | undefined;
+            if (color && rect) {
+              rect.style.fill = color;
+            }
+          });
+        }
+        cell.dataset.col = String(c);
+      } else if (hist && hist.counts.length) {
         const f = (v: number) => markerFraction(hist.edges, v);
         cell.innerHTML =
           histogramSvg(hist.counts) + tickStripSvg(f(hist.min), f(hist.median), f(hist.max));
@@ -433,28 +449,43 @@ function hideHistBubble(): void {
 function showHistBubble(e: MouseEvent): void {
   const cell = (e.target as Element).closest('.cell.stat-hist') as HTMLElement | null;
   const col = cell?.dataset.col ? Number(cell.dataset.col) : -1;
-  const hist = col >= 0 ? columnStats?.[col]?.histogram : undefined;
+  const stat = col >= 0 ? columnStats?.[col] : undefined;
+  // Either a numeric histogram (label = bin range) or categorical bars (label =
+  // category). Both expose a parallel counts array for positioning.
+  const counts = stat?.histogram?.counts ?? stat?.bars?.counts;
   const svg = cell?.querySelector('svg');
-  if (!hist || !svg) {
+  if (!stat || !counts || !counts.length || !svg) {
     hideHistBubble();
     return;
   }
   const rect = svg.getBoundingClientRect();
-  const bins = hist.counts.length;
+  const bins = counts.length;
   const bin = binIndexAt((e.clientX - rect.left) / rect.width, bins);
-  const { lo, hi, count } = histogramBin(hist, bin);
-  const total = hist.counts.reduce((a, b) => a + b, 0);
+  let label: string;
+  if (stat.histogram) {
+    const { lo, hi } = histogramBin(stat.histogram, bin);
+    label = `${formatNumber(lo)} – ${formatNumber(hi)}`;
+  } else {
+    label = stat.bars?.labels[bin] ?? '';
+  }
+  const count = counts[bin];
+  const total = counts.reduce((a, b) => a + b, 0);
   const pct = total > 0 ? ` (${formatPercent((count / total) * 100)})` : '';
-  histBubble.innerHTML =
-    `<div class="hb-range">${formatNumber(lo)} – ${formatNumber(hi)}</div>` +
-    `<div class="hb-count">${count.toLocaleString()}${pct}</div>`;
+  // Build via textContent (not innerHTML) — category labels are arbitrary data.
+  const rangeEl = document.createElement('div');
+  rangeEl.className = 'hb-range';
+  rangeEl.textContent = label;
+  const countEl = document.createElement('div');
+  countEl.className = 'hb-count';
+  countEl.textContent = `${count.toLocaleString()}${pct}`;
+  histBubble.replaceChildren(rangeEl, countEl);
 
   // Center over the bin and sit above the hovered bar's top, flipping below the
   // chart if there isn't room above (the stats row sits near the viewport top).
   histBubble.classList.add('visible');
   const { height } = histBubble.getBoundingClientRect();
   const x = rect.left + ((bin + 0.5) / bins) * rect.width;
-  const barTop = rect.top + barTopFraction(hist.counts, bin) * rect.height;
+  const barTop = rect.top + barTopFraction(counts, bin) * rect.height;
   const gap = 7;
   const above = barTop - gap - height >= 2;
   histBubble.dataset.placement = above ? 'top' : 'bottom';

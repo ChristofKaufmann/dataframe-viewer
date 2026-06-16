@@ -56,13 +56,16 @@ in the spirit of Data Wrangler but starting small.
   truncated, update with the filter, and toggle instantly (no reload):
   - **Missing values** (**Σ** button): the missing-value count per column with
     its share of the rows, e.g. `3 (30%)`
-  - **Distributions** (**graph** button): a small histogram per numeric column
-    (`np.histogram` over non-null values, binned on a "nice" rounded grid of
-    ≈16 bins so the edges are readable round numbers), drawn as an inline SVG
-    that scales to the column width; empty bins keep a minimum bar so the full
-    spread stays visible. Tick marks and **min / median / max** labels sit below
-    each chart, and hovering a bar pops up an immediate bubble with that bin's
-    range and count
+  - **Distributions** (**graph** button): a small chart per column, drawn as an
+    inline SVG that scales to the column width, with an immediate hover bubble
+    over each bar.
+    - *Numeric* columns get a histogram (`np.histogram` over non-null values,
+      binned on a "nice" rounded grid of ≈16 bins so the edges are readable
+      round numbers); empty bins keep a minimum bar so the full spread stays
+      visible, and tick marks with **min / median / max** labels sit below.
+    - *Ordinal* (ordered-categorical) columns get one bar per category in
+      category order (`value_counts`), each tinted with the heatmap colormap at
+      its rank, so the colors read as a left→right gradient.
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
 - Each column header (the index too) shows a dimmed **dtype glyph** — codicon

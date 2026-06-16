@@ -201,6 +201,15 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /_md = float\(_np\.median\(_v\)\)/);
   assert.match(code, /"min": _sig\(_lo\), "median": _sig\(_md\), "max": _sig\(_hi\)/);
   assert.match(code, /_entry\["histogram"\] = _h/);
+  // Ordered-categorical columns get a bar-per-category (in category order) with
+  // colormap colors; attached only when the column isn't numeric.
+  assert.match(code, /def _bars\(_c\):/);
+  assert.match(code, /_c\.dtype\.ordered/);
+  assert.match(code, /_vc = _c\.value_counts\(\)/);
+  assert.match(code, /_counts = \[int\(_vc\.get\(_k, 0\)\) for _k in _cats\]/);
+  assert.match(code, /_entry\["bars"\] = _b/);
+  // Bars use the same colormap as the heatmap.
+  assert.match(buildDumpCode('x', { colormap: 'plasma' }), /_cm = _mpl\.colormaps\["plasma"\]/);
   // Sorting: empty by default; a stable multi-key sort when keys are given.
   assert.match(code, /_sort = \[\]/);
   const sorted = buildDumpCode('df', { sort: [{ column: 2, descending: true }, { column: 0, descending: false }] });

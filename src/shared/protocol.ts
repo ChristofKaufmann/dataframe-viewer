@@ -31,6 +31,12 @@ export interface ColumnStat {
    * lie within the grid range.
    */
   histogram?: { counts: number[]; edges: number[]; min: number; median: number; max: number };
+  /**
+   * Bar chart for ordered-categorical columns: one entry per category, in
+   * category (rank) order. `colors` are the heatmap colormap sampled at each
+   * rank (a "#rrggbb" per bar), or null if matplotlib was unavailable.
+   */
+  bars?: { labels: string[]; counts: number[]; colors: (string | null)[] | null };
 }
 
 /** Webview -> extension host */

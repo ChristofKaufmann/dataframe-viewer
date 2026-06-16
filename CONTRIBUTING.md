@@ -169,8 +169,8 @@ toggles are pure client-side show/hide, instant and free.
 The section is a third sticky grid in the scroller (`#stats-row`, between
 `#header` and `#body`), aligned to the column widths via `applyStatsLayout()`. It
 holds two **sub-rows**, each a labelled grid row: missing counts (**Σ**,
-`body.stats-missing`) and numeric histograms (**graph** button,
-`body.stats-hist`). Both sub-rows are always built; a toggle only flips its body
+`body.stats-missing`) and distributions (**graph** button, `body.stats-hist`).
+Both sub-rows are always built; a toggle only flips its body
 class, and CSS hides the inactive sub-row's cells (`display:none`) so the other
 **reflows up** to the top of the grid — no rebuild on toggle. Each sub-row's
 leftmost (sticky) cell labels it instead of showing the index's own value.
@@ -198,6 +198,16 @@ the non-uniform `preserveAspectRatio` would distort. min/max are straight ticks
 (labels hug the edges); the median's label is centered, so its tick is an **elbow
 path** (down half → across to x=50 → down) linking the exact position to the
 centered label — most visible on skewed data.
+
+**Ordered-categorical** columns get the other distribution shape (`_bars` in
+`buildDumpCode`): `value_counts` reindexed to `dtype.categories` (category/rank
+order, including zero-count categories), with each bar tinted by the heatmap
+colormap sampled at its rank. They reuse `histogramSvg` for the bars; the
+per-bar fill is applied in `main.ts` via `rect.style.fill` (DOM CSSOM, which is
+CSP-safe and beats the stylesheet's default fill — an inline `style=` attribute
+in the SVG string would be blocked by `style-src`). No ticks or min/median/max.
+The hover bubble shows the category label instead of a bin range; it reads
+`stat.histogram?.counts ?? stat.bars?.counts` so the same handler serves both.
 
 Per-bin details use a **custom hover bubble** (`#hist-bubble`), not the slow
 native `title`. It's `position:fixed` on `<body>` (so the scroller/cell
