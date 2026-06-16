@@ -12,7 +12,7 @@ import { steppedGradient } from './colormaps';
 import { dtypeGlyph } from './dtypes';
 import { cycleSort, sortState } from './sorting';
 import { filterPlaceholder } from './filterHint';
-import { binIndexAt, formatPercent, histogramBin, histogramSvg } from './stats';
+import { barTopFraction, binIndexAt, formatPercent, histogramBin, histogramSvg } from './stats';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -416,15 +416,17 @@ function showHistBubble(e: MouseEvent): void {
     `<div class="hb-range">${num(lo)} – ${num(hi)}</div>` +
     `<div class="hb-count">${count.toLocaleString()}${pct}</div>`;
 
-  // Center over the bin and sit above the bar, flipping below if it'd clip the top.
+  // Center over the bin and sit above the hovered bar's top, flipping below the
+  // chart if there isn't room above (the stats row sits near the viewport top).
   histBubble.classList.add('visible');
   const { height } = histBubble.getBoundingClientRect();
   const x = rect.left + ((bin + 0.5) / bins) * rect.width;
+  const barTop = rect.top + barTopFraction(hist.counts, bin) * rect.height;
   const gap = 7;
-  const above = rect.top - gap - height >= 2;
+  const above = barTop - gap - height >= 2;
   histBubble.dataset.placement = above ? 'top' : 'bottom';
   histBubble.style.left = `${x}px`;
-  histBubble.style.top = `${above ? rect.top - gap - height : rect.bottom + gap}px`;
+  histBubble.style.top = `${above ? barTop - gap - height : rect.bottom + gap}px`;
 }
 
 statsRow.addEventListener('mousemove', showHistBubble);

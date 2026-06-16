@@ -28,20 +28,35 @@ const HIST_BAR_GAP = 0.15;
  * Bars are scaled to the tallest bin; empty bins still get HIST_MIN_BAR so the
  * full extent of the distribution stays visible.
  */
+/** Bar height in viewBox units for a bin, scaled to the tallest (with a floor). */
+function barHeight(count: number, max: number): number {
+  const ratio = max > 0 ? count / max : 0;
+  return HIST_MIN_BAR + ratio * (HIST_VIEW_H - HIST_MIN_BAR);
+}
+
 export function histogramSvg(counts: number[]): string {
   const n = counts.length;
   const max = counts.reduce((a, b) => Math.max(a, b), 0);
   const round = (v: number) => Math.round(v * 100) / 100;
   const rects = counts
     .map((count, i) => {
-      const ratio = max > 0 ? count / max : 0;
-      const h = HIST_MIN_BAR + ratio * (HIST_VIEW_H - HIST_MIN_BAR);
+      const h = barHeight(count, max);
       const x = i + HIST_BAR_GAP / 2;
       const w = 1 - HIST_BAR_GAP;
       return `<rect x="${round(x)}" y="${round(HIST_VIEW_H - h)}" width="${round(w)}" height="${round(h)}"/>`;
     })
     .join('');
   return `<svg class="hist" viewBox="0 0 ${n} ${HIST_VIEW_H}" preserveAspectRatio="none">${rects}</svg>`;
+}
+
+/**
+ * Top edge of bin `i`'s bar as a fraction of the chart height (0 = chart top,
+ * 1 = chart bottom). Lets the hover bubble sit above the bar itself rather than
+ * above the whole chart; uses the same scaling as the drawn bars.
+ */
+export function barTopFraction(counts: number[], i: number): number {
+  const max = counts.reduce((a, b) => Math.max(a, b), 0);
+  return (HIST_VIEW_H - barHeight(counts[i] ?? 0, max)) / HIST_VIEW_H;
 }
 
 /** A numeric column's histogram (equal-width bins), as shipped in `ColumnStat`. */

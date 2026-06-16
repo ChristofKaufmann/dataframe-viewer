@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { binIndexAt, formatPercent, histogramBin, histogramSvg } from '../src/webview/stats';
+import {
+  barTopFraction,
+  binIndexAt,
+  formatPercent,
+  histogramBin,
+  histogramSvg,
+} from '../src/webview/stats';
 
 test('formatPercent rounds to a whole number at 10% and above', () => {
   assert.equal(formatPercent(10), '10%');
@@ -35,6 +41,17 @@ test('histogramSvg scales to the tallest bin and floors empty bins', () => {
 test('histogramSvg floors every bin to the minimum when all counts are zero', () => {
   const heights = [...histogramSvg([0, 0]).matchAll(/height="([\d.]+)"/g)].map((m) => Number(m[1]));
   assert.deepEqual(heights, [8, 8]);
+});
+
+test('barTopFraction tracks the bar height (0 at top for the tallest bin)', () => {
+  const counts = [0, 5, 10];
+  // Tallest bin fills the chart: its top is at the chart top (fraction 0).
+  assert.equal(barTopFraction(counts, 2), 0);
+  // Empty bin only gets the minimum bar (8/100 tall), so its top is near the bottom.
+  assert.ok(Math.abs(barTopFraction(counts, 0) - 0.92) < 1e-9);
+  // A mid bin sits between the two.
+  const mid = barTopFraction(counts, 1);
+  assert.ok(mid > 0 && mid < 0.92);
 });
 
 test('binIndexAt maps a 0..1 fraction to a bin and clamps the edges', () => {
