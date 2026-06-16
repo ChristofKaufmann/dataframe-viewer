@@ -23,6 +23,8 @@ function makeData(rows: number, tag = '', colors: TableData['colors'] = null): T
     rows: Array.from({ length: rows }, (_, i) => [String(i), `v${tag}${i}`]),
     colors,
     columnTypes: null,
+    stats: Array.from({ length: 2 }, () => ({ missing: 0 })),
+    total: rows,
     filterError: null,
   };
 }
@@ -55,6 +57,9 @@ test('ready loads once and posts init with a 100-row sample', async () => {
   assert.equal(init.rowCount, 250);
   assert.equal(init.sample.length, 100);
   assert.deepEqual(init.columns, ['', 'a']);
+  // The full total and per-column stats ride along on init.
+  assert.equal(init.total, 250);
+  assert.deepEqual(init.stats, [{ missing: 0 }, { missing: 0 }]);
 });
 
 test('init carries the truncation note when present', async () => {

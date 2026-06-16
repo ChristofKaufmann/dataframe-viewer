@@ -19,6 +19,12 @@ export interface ColumnType {
   kind: string;
 }
 
+/** Summary statistics for one column, computed over the full (filtered) data. */
+export interface ColumnStat {
+  /** Count of missing (NaN/NaT/None) values across all rows, before truncation. */
+  missing: number;
+}
+
 /** Webview -> extension host */
 export interface HeatmapChoices {
   colormap?: string;
@@ -54,12 +60,16 @@ export type HostMessage =
       note?: string;
       columns: string[];
       rowCount: number;
+      /** Total rows in the full (filtered) data, before MAX_ROWS truncation. */
+      total: number;
       /** First rows, used for column width/type estimation and initial paint. */
       sample: string[][];
       /** Heatmap colors for the sample rows, or null when no heatmap applies. */
       sampleColors: (string | null)[][] | null;
       /** Per-column dtype info aligned to `columns` (index first), or null. */
       columnTypes: ColumnType[] | null;
+      /** Per-column summary stats aligned to `columns` (index first), or null. */
+      stats: ColumnStat[] | null;
       /** pandas error from a failed filter query (data shown unfiltered), or null. */
       filterError: string | null;
     }

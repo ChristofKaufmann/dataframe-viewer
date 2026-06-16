@@ -1,10 +1,18 @@
-import { CHUNK_SIZE, ColumnType, HostMessage, SortKey, WebviewMessage } from '../shared/protocol';
+import {
+  CHUNK_SIZE,
+  ColumnStat,
+  ColumnType,
+  HostMessage,
+  SortKey,
+  WebviewMessage,
+} from '../shared/protocol';
 import { autoWidth, cellClass, clampDragWidth, isNumericColumn, maxChars } from './columns';
 import { idealTextColor } from './contrast';
 import { steppedGradient } from './colormaps';
 import { dtypeGlyph } from './dtypes';
 import { cycleSort, sortState } from './sorting';
 import { filterPlaceholder } from './filterHint';
+import { formatPercent } from './stats';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewMessage): void };
 
@@ -33,6 +41,8 @@ const filterToggle = document.getElementById('filter-toggle') as HTMLButtonEleme
 const filterInput = document.getElementById('filter-input') as HTMLInputElement;
 const filterClear = document.getElementById('filter-clear') as HTMLButtonElement;
 const filterError = document.getElementById('filter-error')!;
+const statsToggle = document.getElementById('stats-toggle') as HTMLButtonElement;
+const statsRow = document.getElementById('stats-row')!;
 
 // Column 0 is always the DataFrame index (sticky on the left); columns 1..n
 // are the data columns. Each row in a chunk follows the same layout.
@@ -42,6 +52,10 @@ let gridTemplate = '';
 let numericCols: boolean[] = [];
 let colWidths: number[] = [];
 let columnTypes: ColumnType[] | null = null;
+// Per-column summary stats (index first), aligned to `columns`. Computed over
+// the full filtered data, so counts are exact even when the view is truncated.
+let columnStats: ColumnStat[] | null = null;
+let rowTotal = 0;
 // Multi-column sort, primary first; `column` is a 0-based data-column position
 // (webview column index minus 1, since column 0 is the index). Per-view only.
 let sortKeys: SortKey[] = [];
@@ -77,9 +91,12 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       pendingChunks.clear();
       columns = message.columns;
       rowCount = message.rowCount;
+      rowTotal = message.total;
       columnTypes = message.columnTypes;
+      columnStats = message.stats;
       filterInput.placeholder = filterPlaceholder(columns, columnTypes, message.sample);
       initLayout(message.sample);
+      buildStatsRow();
       // The sample only seeds the cache when it covers all of chunk 0;
       // a partial chunk would otherwise mask the missing rows forever.
       if (rowCount <= message.sample.length) {
@@ -271,6 +288,65 @@ filterClear.addEventListener('click', () => {
   filterInput.focus();
 });
 
+// Statistics row: the Σ button shows/hides it. The counts ride along with every
+// load, so toggling is purely client-side (no reload needed).
+statsToggle.addEventListener('click', () => {
+  if (statsToggle.disabled) {
+    return;
+  }
+  const shown = !document.body.classList.contains('stats-shown');
+  document.body.classList.toggle('stats-shown', shown);
+  statsToggle.classList.toggle('active', shown);
+  statsToggle.setAttribute('aria-pressed', String(shown));
+});
+
+// Shown by default; buildStatsRow() hides it again if the source has no stats.
+document.body.classList.add('stats-shown');
+statsToggle.classList.add('active');
+statsToggle.setAttribute('aria-pressed', 'true');
+
+/**
+ * (Re)builds the stats row to match `columns`: the leftmost (sticky) cell
+ * labels the row, and each data column shows its missing-value count. Disables
+ * the Σ toggle when the source produced no stats.
+ */
+function buildStatsRow(): void {
+  statsRow.replaceChildren();
+  if (!columnStats) {
+    statsToggle.disabled = true;
+    document.body.classList.remove('stats-shown');
+    statsToggle.classList.remove('active');
+    statsToggle.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  statsToggle.disabled = false;
+
+  for (let c = 0; c < columns.length; c++) {
+    const cell = document.createElement('div');
+    if (c === 0) {
+      cell.className = 'cell stat indexcol';
+      cell.textContent = 'missing';
+      cell.title = 'Missing (NaN/NaT/None) values per column';
+    } else {
+      const missing = columnStats[c]?.missing ?? 0;
+      cell.className = 'cell stat';
+      const pct = rowTotal > 0 ? formatPercent((missing / rowTotal) * 100) : '';
+      cell.textContent = `${missing.toLocaleString()} (${pct})`;
+      cell.title = `${missing.toLocaleString()} of ${rowTotal.toLocaleString()} missing${
+        pct ? ` (${pct})` : ''
+      }`;
+    }
+    statsRow.appendChild(cell);
+  }
+  applyStatsLayout();
+}
+
+/** Aligns the stats row to the current column grid (called on layout changes). */
+function applyStatsLayout(): void {
+  statsRow.style.gridTemplateColumns = gridTemplate;
+  statsRow.style.width = `${colWidths.reduce((a, b) => a + b, 0)}px`;
+}
+
 /** Shows/clears the filter error from the last load (data shown unfiltered). */
 function showFilterError(message: string | null): void {
   filterError.textContent = message ?? '';
@@ -404,6 +480,7 @@ function applyLayout(): void {
   headerEl.style.width = `${totalWidth}px`;
   bodyEl.style.width = `${totalWidth}px`;
   bodyEl.style.height = `${rowCount * ROW_HEIGHT}px`;
+  applyStatsLayout();
 }
 
 function startResize(event: PointerEvent, col: number): void {

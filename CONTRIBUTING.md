@@ -157,6 +157,21 @@ its own `try/except`, the data is left unfiltered, and the pandas error string
 rides back in the payload as `filterError` for the webview to show inline. Filter
 is per-view like sort (rides on `ready`/`refresh`, not persisted).
 
+## Column statistics
+
+The stats row under the header is different from heatmap/sort/filter: it does
+**not** trigger a reload. The per-column stats (currently just the
+missing-value count) are computed in `buildDumpCode` over the **full filtered
+`obj`** — before the `head(MAX_ROWS)` truncation, so counts stay exact on big
+tables — and ride along in the payload's `stats` field (aligned index-first,
+like `columnTypes`). They're always shipped, so the **Σ** toggle is pure
+client-side show/hide (`body.stats-shown`), instant and free. The row is a third
+sticky grid in the scroller (`#stats-row`, between `#header` and `#body`),
+aligned to the column widths via `applyStatsLayout()`; its leftmost (sticky)
+cell labels the row instead of showing the index's own count, which leaves room
+to add more stat rows (and later small plots) under the same header. When adding
+a stat, extend `ColumnStat` and the Python `stats` list together.
+
 ## Webview specifics
 
 - **Pure modules are the testable core.** Logic lives in DOM-free/vscode-free

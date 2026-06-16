@@ -51,6 +51,12 @@ in the spirit of Data Wrangler but starting small.
   Clicking the funnel again hides the bar and disables the filter temporarily
   (the data goes back to unfiltered) while keeping the expression; clicking once
   more re-applies it
+- **Column statistics** — a row just under the header (on by default, toggled by
+  the **Σ** toolbar button) shows the **missing-value count** per column with its
+  share of the rows, e.g. `3 (30%)`. Counts are computed in pandas over the full
+  (filtered) data, so they stay exact even when the view is truncated, and they
+  update with the filter; toggling the row is instant (no reload). More stats and
+  small plots are planned for this section
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
 - Each column header (the index too) shows a dimmed **dtype glyph** — codicon
@@ -144,4 +150,5 @@ identical behavior for files and variables.
 
 ## Ideas for later
 
-- Column statistics
+- More column statistics (min/max/mean, distinct counts) and small
+  distribution plots in the statistics row

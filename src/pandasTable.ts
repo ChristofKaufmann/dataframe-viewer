@@ -4,7 +4,7 @@
  * side that turns the payload into table columns/rows. Used both by the
  * Jupyter kernel path (variables) and the subprocess path (CSV files).
  */
-import { ColumnType, SortKey } from './shared/protocol';
+import { ColumnStat, ColumnType, SortKey } from './shared/protocol';
 
 export const MAX_ROWS = 100_000;
 
@@ -29,6 +29,12 @@ export interface DumpPayload {
    * columns), or null if it couldn't be computed.
    */
   columnTypes: ColumnType[] | null;
+  /**
+   * Per-column summary stats aligned to the final columns (index first), or
+   * null if they couldn't be computed. Counted over the full (filtered) frame,
+   * not the truncated `head`, so the counts are exact.
+   */
+  stats: ColumnStat[] | null;
   /** pandas error message from a failed filter query, or null. */
   filterError: string | null;
 }
@@ -138,6 +144,21 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '        except Exception:',
     '            pass',
     '    total = len(obj)',
+    // Per-column summary stats over the *full* filtered frame (not the truncated
+    // head, so counts are exact). Aligned index-first like column_types. For now
+    // just the missing (NaN/NaT/None) count, which is meaningful for every dtype.
+    '    stats = None',
+    '    try:',
+    '        def _missing(_x):',
+    '            try:',
+    '                return int(pd.isna(_x).sum())',
+    '            except Exception:',
+    '                return 0',
+    '        stats = [{"missing": _missing(obj.index)}]',
+    '        for _i in range(obj.shape[1]):',
+    '            stats.append({"missing": _missing(obj.iloc[:, _i])})',
+    '    except Exception:',
+    '        stats = None',
     `    head = obj.head(${MAX_ROWS}).copy()`,
     // index.names works for both a regular Index (one element) and a
     // MultiIndex (whose .name is always None); join the level names so a
@@ -265,8 +286,8 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '            column_types.append({"dtype": str(_col.dtype), "kind": _kind(_col)})',
     '    except Exception:',
     '        column_types = None',
-    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "filterError": %s}\'',
-    '          % (total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(_filter_error)))',
+    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "stats": %s, "filterError": %s}\'',
+    '          % (total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(stats), json.dumps(_filter_error)))',
     '',
     '_VSCODE_dataviewer_dump()',
     'del _VSCODE_dataviewer_dump',
@@ -327,6 +348,10 @@ export interface TableContent {
   colors: (string | null)[][] | null;
   /** Per-column dtype info aligned to `columns` (index first), or null. */
   columnTypes: ColumnType[] | null;
+  /** Per-column summary stats aligned to `columns` (index first), or null. */
+  stats: ColumnStat[] | null;
+  /** Total rows in the full (filtered) data, before truncation to MAX_ROWS. */
+  total: number;
   /** pandas error message from a failed filter query, or null. */
   filterError: string | null;
   /** Status-bar notice when the data was truncated to MAX_ROWS. */
@@ -350,12 +375,14 @@ export function toTable(payload: DumpPayload): TableContent {
     payload.total > table.data.length
       ? `showing first ${table.data.length.toLocaleString()} of ${payload.total.toLocaleString()} rows`
       : undefined;
-  // columnTypes already includes the index at [0], so it lines up with columns.
+  // columnTypes/stats already include the index at [0], so they line up with columns.
   return {
     columns,
     rows,
     colors,
     columnTypes: payload.columnTypes,
+    stats: payload.stats,
+    total: payload.total,
     filterError: payload.filterError,
     note,
   };

@@ -83,6 +83,37 @@ body {
   background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.25));
 }
 
+#stats-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#stats-toggle:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+#stats-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Highlight Σ while the statistics row is shown. */
+#stats-toggle.active {
+  color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
+  background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.25));
+}
+
 #filter-bar {
   position: absolute;
   top: 29px;
@@ -458,4 +489,41 @@ body.resizing {
   z-index: 4;
   background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
   border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35));
+}
+
+/*
+ * Statistics row: sticks just under the header (24px tall) and stays visible
+ * while the body scrolls under it. Hidden until the Σ toggle adds .stats-shown.
+ * z-index sits below the header (3) but above the body so it covers scrolling
+ * rows; the sticky index cell rides above its row siblings.
+ */
+#stats-row {
+  position: sticky;
+  top: 24px;
+  z-index: 2;
+  display: none;
+  grid-auto-rows: 22px;
+}
+
+body.stats-shown #stats-row {
+  display: grid;
+}
+
+.cell.stat {
+  height: 22px;
+  line-height: 22px;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.35));
+}
+
+/* The leftmost stat cell labels the row (e.g. "missing") instead of a count. */
+.cell.stat.indexcol {
+  z-index: 1;
+  text-align: left;
+  font-style: italic;
+  background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
 }

@@ -18,6 +18,7 @@ function payload(over: Partial<DumpPayload> = {}): DumpPayload {
     table: { columns: ['a', 'b'], index: [0, 1], data: [[1, 'x'], [2, 'y']] },
     colors: null,
     columnTypes: null,
+    stats: null,
     filterError: null,
     ...over,
   };
@@ -49,6 +50,15 @@ test('toTable passes through null colors (no heatmap)', () => {
 test('toTable passes the filter error through', () => {
   assert.equal(toTable(payload()).filterError, null);
   assert.equal(toTable(payload({ filterError: "name 'nope' is not defined" })).filterError, "name 'nope' is not defined");
+});
+
+test('toTable passes column stats and the full total through (index-aligned)', () => {
+  const stats = [{ missing: 0 }, { missing: 3 }, { missing: 1 }];
+  const out = toTable(payload({ stats, total: 1000 }));
+  assert.deepEqual(out.stats, stats);
+  assert.equal(out.total, 1000);
+  // Null stats survive as null (source couldn't compute them).
+  assert.equal(toTable(payload({ stats: null })).stats, null);
 });
 
 test('toTable passes column types through (already index-aligned)', () => {
@@ -169,6 +179,13 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   // Per-column dtype + kind are computed for the type glyphs.
   assert.match(code, /"columnTypes": %s/);
   assert.match(code, /def _kind\(_x\):/);
+  // Per-column missing-value counts, computed over the full filtered frame
+  // (before head truncation) and aligned index-first.
+  assert.match(code, /"stats": %s/);
+  assert.match(code, /pd\.isna\(_x\)\.sum\(\)/);
+  assert.match(code, /stats = \[\{"missing": _missing\(obj\.index\)\}\]/);
+  // Stats are counted before the head() truncation so they stay exact.
+  assert.ok(code.indexOf('_missing(obj.index)') < code.indexOf(`head = obj.head(`));
   // Sorting: empty by default; a stable multi-key sort when keys are given.
   assert.match(code, /_sort = \[\]/);
   const sorted = buildDumpCode('df', { sort: [{ column: 2, descending: true }, { column: 0, descending: false }] });

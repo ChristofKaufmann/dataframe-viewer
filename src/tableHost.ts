@@ -1,4 +1,11 @@
-import { CHUNK_SIZE, ColumnType, HostMessage, SortKey, WebviewMessage } from './shared/protocol';
+import {
+  CHUNK_SIZE,
+  ColumnStat,
+  ColumnType,
+  HostMessage,
+  SortKey,
+  WebviewMessage,
+} from './shared/protocol';
 
 export interface TableData {
   /** Label shown in the status bar (file or variable name). */
@@ -11,6 +18,10 @@ export interface TableData {
   colors: (string | null)[][] | null;
   /** Per-column dtype info aligned to `columns` (index first), or null. */
   columnTypes: ColumnType[] | null;
+  /** Per-column summary stats aligned to `columns` (index first), or null. */
+  stats: ColumnStat[] | null;
+  /** Total rows in the full (filtered) data, before truncation. */
+  total: number;
   /** pandas error from a failed filter query (data shown unfiltered), or null. */
   filterError: string | null;
 }
@@ -66,9 +77,11 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
         note: data.note,
         columns: data.columns,
         rowCount: data.rows.length,
+        total: data.total,
         sample: data.rows.slice(0, 100),
         sampleColors: data.colors ? data.colors.slice(0, 100) : null,
         columnTypes: data.columnTypes,
+        stats: data.stats,
         filterError: data.filterError,
       });
     } catch (err) {
