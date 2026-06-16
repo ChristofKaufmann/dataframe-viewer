@@ -113,13 +113,20 @@ export function binIndexAt(fraction: number, bins: number): number {
 }
 
 /**
- * Formats a number with a decimal point regardless of the UI locale and without
- * grouping — so histogram bin edges read the same way as the table cells, which
- * come straight from pandas (always a point). Edges are already rounded to a
- * clean precision in Python, so we just print them faithfully.
+ * Formats a number with a decimal point regardless of the UI locale (edges are
+ * pre-rounded in Python, so we print them faithfully). Large magnitudes get a
+ * thin-space (U+2009) thousands separator for readability, but only at
+ * |value| >= 10000 — smaller numbers stay ungrouped (e.g. 9999, not 9 999).
  */
 export function formatNumber(value: number): string {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 20, useGrouping: false });
+  const grouped = Math.abs(value) >= 10000;
+  const text = value.toLocaleString('en-US', {
+    maximumFractionDigits: 20,
+    useGrouping: grouped,
+  });
+  // en-US groups with "," and uses "." for the decimal, so swapping commas for
+  // thin spaces leaves the decimal point intact.
+  return grouped ? text.replace(/,/g, ' ') : text;
 }
 
 /** Edge values [lo, hi) and count for bin `i`, read off the nice-grid edges. */

@@ -53,6 +53,14 @@ test('formatNumber uses a decimal point and no grouping, regardless of locale', 
   assert.equal(formatNumber(0), '0');
 });
 
+test('formatNumber groups with a thin space only at |value| >= 10000', () => {
+  const THIN = ' ';
+  assert.equal(formatNumber(9999), '9999'); // below the threshold: ungrouped
+  assert.equal(formatNumber(10000), `10${THIN}000`);
+  assert.equal(formatNumber(1234567.5), `1${THIN}234${THIN}567.5`);
+  assert.equal(formatNumber(-25000), `-25${THIN}000`); // threshold is on magnitude
+});
+
 test('barTopFraction tracks the bar height (0 at top for the tallest bin)', () => {
   const counts = [0, 5, 10];
   // Tallest bin fills the chart: its top is at the chart top (fraction 0).
