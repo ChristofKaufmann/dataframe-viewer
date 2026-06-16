@@ -71,6 +71,51 @@ export function tickStripSvg(minF: number, medianF: number, maxF: number): strin
 }
 
 /**
+ * A horizontal stacked bar: one segment per value, widths proportional to the
+ * counts, in a 0..100 viewBox with `preserveAspectRatio="none"` (full width,
+ * fixed height via CSS). A small gap separates segments. Per-segment fill is
+ * applied in the DOM afterwards, like the categorical bars.
+ */
+export function stackedBarSvg(counts: number[]): string {
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  const gap = 0.6;
+  const avail = Math.max(0, 100 - gap * Math.max(0, counts.length - 1));
+  const round = (v: number) => Math.round(v * 100) / 100;
+  let x = 0;
+  const rects = counts
+    .map((c) => {
+      const w = (c / total) * avail;
+      const rect = `<rect x="${round(x)}" y="0" width="${round(w)}" height="10"/>`;
+      x += w + gap;
+      return rect;
+    })
+    .join('');
+  return `<svg class="stacked" viewBox="0 0 100 10" preserveAspectRatio="none">${rects}</svg>`;
+}
+
+/**
+ * Segment under a 0..1 fraction of a stacked bar's width (segments have varying
+ * widths, so this isn't a uniform-bin lookup). Returns the index and the
+ * segment's center as a fraction, for placing the hover bubble. Gaps between
+ * segments are ignored (negligible) so it maps purely by cumulative count.
+ */
+export function segmentAt(counts: number[], fraction: number): { index: number; center: number } {
+  const total = counts.reduce((a, b) => a + b, 0);
+  if (total <= 0) {
+    return { index: 0, center: 0 };
+  }
+  const target = Math.max(0, Math.min(1, fraction)) * total;
+  let acc = 0;
+  for (let i = 0; i < counts.length; i++) {
+    if (target < acc + counts[i] || i === counts.length - 1) {
+      return { index: i, center: (acc + counts[i] / 2) / total };
+    }
+    acc += counts[i];
+  }
+  return { index: counts.length - 1, center: 0.5 };
+}
+
+/**
  * Position of `value` as a 0..1 fraction of the chart width (which spans the
  * nice-grid edges, not the data extent), clamped into range.
  */

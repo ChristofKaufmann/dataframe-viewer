@@ -8,6 +8,8 @@ import {
   histogramBin,
   histogramSvg,
   markerFraction,
+  segmentAt,
+  stackedBarSvg,
   tickStripSvg,
 } from '../src/webview/stats';
 
@@ -81,6 +83,25 @@ test('tickStripSvg draws straight min/max ticks and an elbow for the median', ()
   assert.match(svg, /<path d="M30 0 L30 5 L50 5 L50 10" fill="none"/);
   assert.match(svg, /viewBox="0 0 100 10"/);
   assert.match(svg, /vector-effect="non-scaling-stroke"/);
+});
+
+test('stackedBarSvg lays segments out proportionally across a 0..100 strip', () => {
+  const svg = stackedBarSvg([1, 3]);
+  assert.match(svg, /viewBox="0 0 100 10"/);
+  const widths = [...svg.matchAll(/width="([\d.]+)"/g)].map((m) => Number(m[1]));
+  // total 4, one 0.6 gap → avail 99.4, split 1:3.
+  assert.equal(widths.length, 2);
+  assert.ok(Math.abs(widths[0] - 24.85) < 0.01);
+  assert.ok(Math.abs(widths[1] - 74.55) < 0.01);
+});
+
+test('segmentAt finds the variable-width segment under a fraction and its center', () => {
+  const counts = [2, 3, 5]; // total 10
+  assert.deepEqual(segmentAt(counts, 0), { index: 0, center: 0.1 });
+  assert.deepEqual(segmentAt(counts, 0.25), { index: 1, center: 0.35 });
+  assert.deepEqual(segmentAt(counts, 0.9), { index: 2, center: 0.75 });
+  assert.deepEqual(segmentAt(counts, 1), { index: 2, center: 0.75 }); // edge → last
+  assert.deepEqual(segmentAt([], 0.5), { index: 0, center: 0 }); // empty → safe
 });
 
 test('markerFraction maps a value onto the grid span and clamps', () => {

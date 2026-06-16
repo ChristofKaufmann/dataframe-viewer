@@ -206,8 +206,22 @@ colormap sampled at its rank. They reuse `histogramSvg` for the bars; the
 per-bar fill is applied in `main.ts` via `rect.style.fill` (DOM CSSOM, which is
 CSP-safe and beats the stylesheet's default fill — an inline `style=` attribute
 in the SVG string would be blocked by `style-src`). No ticks or min/median/max.
-The hover bubble shows the category label instead of a bin range; it reads
-`stat.histogram?.counts ?? stat.bars?.counts` so the same handler serves both.
+**Unordered discrete** columns — text/object, unordered categorical, bool —
+get a horizontal stacked bar (`_segments` in `buildDumpCode`): `value_counts`
+capped to the top 8 plus an "(other)" bucket, with a **qualitative** palette
+(`tab10`, plus gray for "(other)") so no order is implied, and the full distinct
+count in `unique` (shown as a caption). `stackedBarSvg` lays the segments out
+proportionally; fills are applied per-segment via `rect.style.fill`. Because the
+segments have varying widths, hover hit-testing uses `segmentAt` (cumulative
+count) rather than the uniform `binIndexAt`, and the bubble anchors above the
+strip rather than a bar top.
+
+The hover bubble reads `histogram?.counts ?? bars?.counts ?? segments?.counts`
+and branches on which field is set, so one handler serves all three; the label
+(bin range / category / value) is built with `textContent` since it's arbitrary
+data. A column gets exactly one of `histogram` / `bars` / `segments` (numeric →
+histogram, ordered categorical → bars, else → segments; datetime/timedelta get
+none for now).
 
 Per-bin details use a **custom hover bubble** (`#hist-bubble`), not the slow
 native `title`. It's `position:fixed` on `<body>` (so the scroller/cell

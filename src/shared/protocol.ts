@@ -37,6 +37,18 @@ export interface ColumnStat {
    * rank (a "#rrggbb" per bar), or null if matplotlib was unavailable.
    */
   bars?: { labels: string[]; counts: number[]; colors: (string | null)[] | null };
+  /**
+   * Stacked-bar distribution for unordered discrete columns (object/string,
+   * unordered categorical, bool): the top values by count plus an "(other)"
+   * bucket, with a qualitative palette (no order implied). `unique` is the full
+   * distinct-value count; `colors` is null if matplotlib was unavailable.
+   */
+  segments?: {
+    labels: string[];
+    counts: number[];
+    colors: (string | null)[] | null;
+    unique: number;
+  };
 }
 
 /** Webview -> extension host */

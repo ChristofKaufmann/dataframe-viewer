@@ -20,6 +20,8 @@ import {
   histogramBin,
   histogramSvg,
   markerFraction,
+  segmentAt,
+  stackedBarSvg,
   tickStripSvg,
 } from './stats';
 
@@ -375,7 +377,27 @@ function buildStatsRow(): void {
       cell.className = 'cell stat stat-hist';
       const hist = columnStats[c]?.histogram;
       const bars = columnStats[c]?.bars;
-      if (bars && bars.counts.length) {
+      const segments = columnStats[c]?.segments;
+      if (segments && segments.counts.length) {
+        // Unordered discrete column: a horizontal stacked bar + a unique-count
+        // caption (which directly surfaces "how many distinct values").
+        cell.classList.add('stat-nominal');
+        cell.innerHTML = stackedBarSvg(segments.counts);
+        if (segments.colors) {
+          const rects = cell.querySelectorAll('rect');
+          segments.colors.forEach((color, i) => {
+            const rect = rects[i] as SVGElement | undefined;
+            if (color && rect) {
+              rect.style.fill = color;
+            }
+          });
+        }
+        const cap = document.createElement('div');
+        cap.className = 'stacked-cap';
+        cap.textContent = `${segments.unique.toLocaleString()} unique`;
+        cell.appendChild(cap);
+        cell.dataset.col = String(c);
+      } else if (bars && bars.counts.length) {
         cell.innerHTML = histogramSvg(bars.counts);
         // Tint each bar with its category's heatmap color (DOM .style.fill is
         // CSP-safe and overrides the default fill from the stylesheet).
@@ -450,25 +472,43 @@ function showHistBubble(e: MouseEvent): void {
   const cell = (e.target as Element).closest('.cell.stat-hist') as HTMLElement | null;
   const col = cell?.dataset.col ? Number(cell.dataset.col) : -1;
   const stat = col >= 0 ? columnStats?.[col] : undefined;
-  // Either a numeric histogram (label = bin range) or categorical bars (label =
-  // category). Both expose a parallel counts array for positioning.
-  const counts = stat?.histogram?.counts ?? stat?.bars?.counts;
+  // One of: numeric histogram (label = bin range), categorical bars (label =
+  // category), or a stacked bar (label = value). All expose a counts array.
+  const counts = stat?.histogram?.counts ?? stat?.bars?.counts ?? stat?.segments?.counts;
   const svg = cell?.querySelector('svg');
   if (!stat || !counts || !counts.length || !svg) {
     hideHistBubble();
     return;
   }
   const rect = svg.getBoundingClientRect();
-  const bins = counts.length;
-  const bin = binIndexAt((e.clientX - rect.left) / rect.width, bins);
+  const fx = (e.clientX - rect.left) / rect.width;
+
+  // Resolve the hovered item, its label, the bubble's x-center fraction, and the
+  // y it should sit above (the bar's top for vertical charts; the strip top for
+  // the horizontal stacked bar).
   let label: string;
-  if (stat.histogram) {
-    const { lo, hi } = histogramBin(stat.histogram, bin);
-    label = `${formatNumber(lo)} – ${formatNumber(hi)}`;
+  let count: number;
+  let centerFraction: number;
+  let topY: number;
+  if (stat.segments) {
+    const { index, center } = segmentAt(counts, fx);
+    label = stat.segments.labels[index] ?? '';
+    count = counts[index];
+    centerFraction = center;
+    topY = rect.top;
   } else {
-    label = stat.bars?.labels[bin] ?? '';
+    const bin = binIndexAt(fx, counts.length);
+    if (stat.histogram) {
+      const { lo, hi } = histogramBin(stat.histogram, bin);
+      label = `${formatNumber(lo)} – ${formatNumber(hi)}`;
+    } else {
+      label = stat.bars?.labels[bin] ?? '';
+    }
+    count = counts[bin];
+    centerFraction = (bin + 0.5) / counts.length;
+    topY = rect.top + barTopFraction(counts, bin) * rect.height;
   }
-  const count = counts[bin];
+
   const total = counts.reduce((a, b) => a + b, 0);
   const pct = total > 0 ? ` (${formatPercent((count / total) * 100)})` : '';
   // Build via textContent (not innerHTML) — category labels are arbitrary data.
@@ -480,17 +520,16 @@ function showHistBubble(e: MouseEvent): void {
   countEl.textContent = `${count.toLocaleString()}${pct}`;
   histBubble.replaceChildren(rangeEl, countEl);
 
-  // Center over the bin and sit above the hovered bar's top, flipping below the
-  // chart if there isn't room above (the stats row sits near the viewport top).
+  // Center over the item and sit above it, flipping below the chart if there
+  // isn't room above (the stats row sits near the viewport top).
   histBubble.classList.add('visible');
   const { height } = histBubble.getBoundingClientRect();
-  const x = rect.left + ((bin + 0.5) / bins) * rect.width;
-  const barTop = rect.top + barTopFraction(counts, bin) * rect.height;
+  const x = rect.left + centerFraction * rect.width;
   const gap = 7;
-  const above = barTop - gap - height >= 2;
+  const above = topY - gap - height >= 2;
   histBubble.dataset.placement = above ? 'top' : 'bottom';
   histBubble.style.left = `${x}px`;
-  histBubble.style.top = `${above ? barTop - gap - height : rect.bottom + gap}px`;
+  histBubble.style.top = `${above ? topY - gap - height : rect.bottom + gap}px`;
 }
 
 statsRow.addEventListener('mousemove', showHistBubble);

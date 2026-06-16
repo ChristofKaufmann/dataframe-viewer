@@ -210,6 +210,14 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /_entry\["bars"\] = _b/);
   // Bars use the same colormap as the heatmap.
   assert.match(buildDumpCode('x', { colormap: 'plasma' }), /_cm = _mpl\.colormaps\["plasma"\]/);
+  // Unordered discrete columns get a stacked bar: top values + "(other)", a
+  // qualitative palette, and the distinct count; attached when not numeric/ordinal.
+  assert.match(code, /def _segments\(_c\):/);
+  assert.match(code, /_vc = _c\.value_counts\(dropna=True\)/);
+  assert.match(code, /colormaps\["tab10"\]/);
+  assert.match(code, /_labels\.append\("\(other\)"\)/);
+  assert.match(code, /"unique": int\(_vc\.size\)/);
+  assert.match(code, /_entry\["segments"\] = _s/);
   // Sorting: empty by default; a stable multi-key sort when keys are given.
   assert.match(code, /_sort = \[\]/);
   const sorted = buildDumpCode('df', { sort: [{ column: 2, descending: true }, { column: 0, descending: false }] });

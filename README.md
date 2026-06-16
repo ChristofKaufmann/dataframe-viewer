@@ -66,6 +66,10 @@ in the spirit of Data Wrangler but starting small.
     - *Ordinal* (ordered-categorical) columns get one bar per category in
       category order (`value_counts`), each tinted with the heatmap colormap at
       its rank, so the colors read as a left→right gradient.
+    - *Unordered* discrete columns (text/string, unordered categorical, bool)
+      get a horizontal stacked bar — the top values by count plus an "(other)"
+      bucket, with a qualitative palette (no order implied) and a caption with
+      the distinct-value count.
 - Adjustable column widths (drag the header edge, double-click to auto-fit)
 - First row is treated as the header
 - Each column header (the index too) shows a dimmed **dtype glyph** — codicon
