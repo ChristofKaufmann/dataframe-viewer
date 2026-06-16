@@ -215,9 +215,11 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /def _segments\(_c\):/);
   assert.match(code, /_vc = _c\.value_counts\(dropna=True\)/);
   assert.match(code, /colormaps\["tab10"\]/);
-  // Top 9, and the palette skips tab10's C7 (gray) so it can't clash with the
-  // gray "(other)" bucket.
-  assert.match(code, /_TOP = 9/);
+  // Values are kept a whole count-level at a time against a 9-color budget; a
+  // level that overflows (and everything rarer) collapses into "(other)". The
+  // palette skips tab10's C7 (gray) so it can't clash with the "(other)" gray.
+  assert.match(code, /_budget = 9/);
+  assert.match(code, /if _i \+ _budget < _n and _cv\[_i \+ _budget\] == _lvl:/);
   assert.match(code, /_idx = \[0, 1, 2, 3, 4, 5, 6, 8, 9\]/);
   assert.match(code, /_labels\.append\("\(other\)"\)/);
   assert.match(code, /"unique": int\(_vc\.size\)/);
