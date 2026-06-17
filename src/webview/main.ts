@@ -432,6 +432,17 @@ function buildStatsRow(): void {
         const f = (v: number) => markerFraction(hist.edges, v);
         cell.innerHTML =
           histogramSvg(hist.counts) + tickStripSvg(f(hist.min), f(hist.median), f(hist.max));
+        // Tint each bar by its bin center on the colormap (same DOM .style.fill
+        // approach as the categorical bars, CSP-safe).
+        if (hist.colors) {
+          const rects = cell.querySelectorAll('rect');
+          hist.colors.forEach((color, i) => {
+            const rect = rects[i] as SVGElement | undefined;
+            if (color && rect) {
+              rect.style.fill = color;
+            }
+          });
+        }
         // min / median / max labels below the chart (HTML, so they aren't
         // stretched by the SVG's non-uniform scaling): each a value over a
         // "(min)" / "(median)" / "(max)" caption, aligned left/center/right.

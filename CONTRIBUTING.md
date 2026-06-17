@@ -191,7 +191,11 @@ full `edges` array is shipped (the webview prints them verbatim via
 drawn by the pure `histogramSvg()` in `webview/stats.ts`: a `viewBox="0 0 bins
 100"` SVG with `preserveAspectRatio="none"`, so it stretches to the cell and
 **never rebuilds on resize**. Empty bins still get `HIST_MIN_BAR` so the spread
-stays visible.
+stays visible. Each bar is **tinted by its bin center** on the Colorize colormap
+(`_bin_colors`, the center normalized over the data extent `[lo, hi]` — the same
+mapping as the numeric cell coloring, so the histogram reads as a left-to-right
+gradient and matches the cell colors); the per-bin `colors` array is applied in
+`main.ts` via `rect.style.fill`, exactly like the categorical bars below.
 
 **Datetime/timedelta** share that histogram, with two twists. (1) Edges are
 **calendar-/duration-aware**: `_date_edges` picks the finest `pd.date_range`

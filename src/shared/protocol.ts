@@ -30,11 +30,13 @@ export interface ColumnStat {
    * epoch-/total-seconds for datetime/timedelta. For numeric columns the edges
    * are a "nice" rounded grid shown verbatim; datetime/timedelta instead carry
    * `labels` (date / duration strings) that the webview displays in place of the
-   * numbers, with calendar-/duration-aware bin boundaries.
+   * numbers, with calendar-/duration-aware bin boundaries. `colors` tint each bar
+   * by its bin center on the colormap (null if matplotlib was unavailable).
    */
   histogram?: {
     counts: number[];
     edges: number[];
+    colors: (string | null)[] | null;
     min: number;
     median: number;
     max: number;

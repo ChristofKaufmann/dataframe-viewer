@@ -143,6 +143,8 @@ export interface Histogram {
   counts: number[];
   /** Bin edge *positions* (numeric for geometry); length is `counts.length + 1`. */
   edges: number[];
+  /** Per-bin colormap fill (bin center mapped over the data extent), or null. */
+  colors?: (string | null)[] | null;
   /** Actual data min/median/max positions, within the edge range. */
   min: number;
   median: number;

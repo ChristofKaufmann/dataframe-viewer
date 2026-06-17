@@ -213,6 +213,19 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /_vv\.astype\("datetime64\[ns\]"\)\.astype\("int64"\)/);
   assert.match(code, /_vv\.astype\("timedelta64\[ns\]"\)\.astype\("int64"\)/);
   assert.match(code, /"labels": \{"edges": _elabels/);
+  // Histogram bars are tinted by their bin center on the colormap, using the same
+  // range as the cell coloring: per-column when columnwise, else shared across the
+  // type group, and centered at 0 for numeric/timedelta (not datetime).
+  assert.match(code, /def _bin_colors\(_edges, _lo, _hi\):/);
+  assert.match(code, /_ctr = \(float\(_edges\[_j\]\) \+ float\(_edges\[_j \+ 1\]\)\) \/ 2/);
+  assert.match(code, /_h\["colors"\] = _bin_colors\(_h\["edges"\], _lo, _hi\)/);
+  assert.match(code, /if _columnwise:/);
+  assert.match(code, /if _center and _g != "datetime":/);
+  // center/columnwise are injected into the stats block too (not just the colors
+  // block), so the histogram range tracks the cell-coloring range — both appear.
+  const centered = buildDumpCode('x', { center: true, columnwise: true });
+  assert.equal((centered.match(/_center = True/g) ?? []).length, 2);
+  assert.equal((centered.match(/_columnwise = True/g) ?? []).length, 2);
   // Ordered-categorical columns get a bar-per-category (in category order) with
   // colormap colors; attached only when the column isn't numeric.
   assert.match(code, /def _bars\(_c\):/);
