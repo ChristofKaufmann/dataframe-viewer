@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getHeatmapSettings, updateHeatmapSettings } from '../src/heatmapSettings';
+import { getColorizeSettings, updateColorizeSettings } from '../src/colorizeSettings';
 
 // Minimal stand-in for the bits of ExtensionContext.globalState we use.
 function fakeContext(initial: Record<string, unknown> = {}) {
@@ -17,7 +17,7 @@ function fakeContext(initial: Record<string, unknown> = {}) {
 }
 
 test('defaults to colorize all + viridis + uncentered + grouped when nothing saved', () => {
-  const s = getHeatmapSettings(fakeContext());
+  const s = getColorizeSettings(fakeContext());
   assert.deepEqual(s, {
     colorizeNumeric: true,
     colorizeDatetime: true,
@@ -38,13 +38,13 @@ test('round-trips saved settings', async () => {
     center: true,
     columnwise: true,
   };
-  await updateHeatmapSettings(ctx, saved);
-  assert.deepEqual(getHeatmapSettings(ctx), saved);
+  await updateColorizeSettings(ctx, saved);
+  assert.deepEqual(getColorizeSettings(ctx), saved);
 });
 
 test('fills in missing fields from a partial saved value', () => {
-  const ctx = fakeContext({ 'dataViewer.heatmap': { colormap: 'magma', colorizeDatetime: false } });
-  assert.deepEqual(getHeatmapSettings(ctx), {
+  const ctx = fakeContext({ 'dataViewer.colorize': { colormap: 'magma', colorizeDatetime: false } });
+  assert.deepEqual(getColorizeSettings(ctx), {
     colorizeNumeric: true,
     colorizeDatetime: false,
     colorizeCategorical: true,

@@ -33,7 +33,7 @@ export interface ColumnStat {
   histogram?: { counts: number[]; edges: number[]; min: number; median: number; max: number };
   /**
    * Bar chart for ordered-categorical columns: one entry per category, in
-   * category (rank) order. `colors` are the heatmap colormap sampled at each
+   * category (rank) order. `colors` are the colormap sampled at each
    * rank (a "#rrggbb" per bar), or null if matplotlib was unavailable.
    */
   bars?: { labels: string[]; counts: number[]; colors: (string | null)[] | null };
@@ -54,7 +54,7 @@ export interface ColumnStat {
 }
 
 /** Webview -> extension host */
-export interface HeatmapChoices {
+export interface ColorizeChoices {
   colormap?: string;
   center?: boolean;
   columnwise?: boolean;
@@ -65,10 +65,10 @@ export interface HeatmapChoices {
 
 export type WebviewMessage =
   // `sort`/`filter` are per-view (not persisted), so they ride on ready/refresh.
-  | ({ type: 'ready'; sort: SortKey[]; filter: string } & HeatmapChoices)
-  | ({ type: 'refresh'; sort: SortKey[]; filter: string } & HeatmapChoices)
+  | ({ type: 'ready'; sort: SortKey[]; filter: string } & ColorizeChoices)
+  | ({ type: 'refresh'; sort: SortKey[]; filter: string } & ColorizeChoices)
   | { type: 'rows'; chunk: number }
-  /** Persist heatmap UI choices so they carry over to the next view. */
+  /** Persist Colorize UI choices so they carry over to the next view. */
   | {
       type: 'settings';
       colormap: string;
@@ -92,7 +92,7 @@ export type HostMessage =
       total: number;
       /** First rows, used for column width/type estimation and initial paint. */
       sample: string[][];
-      /** Heatmap colors for the sample rows, or null when no heatmap applies. */
+      /** Cell colors for the sample rows, or null when Colorize is off. */
       sampleColors: (string | null)[][] | null;
       /** Per-column dtype info aligned to `columns` (index first), or null. */
       columnTypes: ColumnType[] | null;
@@ -105,7 +105,7 @@ export type HostMessage =
       type: 'rows';
       chunk: number;
       rows: string[][];
-      /** Heatmap colors aligned to `rows`, or null when no heatmap applies. */
+      /** Cell colors aligned to `rows`, or null when Colorize is off. */
       colors: (string | null)[][] | null;
     }
   | { type: 'error'; message: string };

@@ -14,7 +14,7 @@ export interface TableData {
   note?: string;
   columns: string[];
   rows: string[][];
-  /** Per-cell heatmap colors aligned to `rows`, or null when none apply. */
+  /** Per-cell colors aligned to `rows`, or null when none apply. */
   colors: (string | null)[][] | null;
   /** Per-column dtype info aligned to `columns` (index first), or null. */
   columnTypes: ColumnType[] | null;
@@ -28,9 +28,9 @@ export interface TableData {
 
 /** Parameters that affect how the data is (re)loaded, set from the webview UI. */
 export interface LoadOptions {
-  /** matplotlib colormap name for the heatmap; undefined uses the default. */
+  /** matplotlib colormap name for Colorize; undefined uses the default. */
   colormap?: string;
-  /** Center the heatmap value range on 0 (symmetric vmin/vmax). */
+  /** Center Colorize value range on 0 (symmetric vmin/vmax). */
   center?: boolean;
   /** Compute the value range per column instead of per type group. */
   columnwise?: boolean;

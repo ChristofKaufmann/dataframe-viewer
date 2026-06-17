@@ -11,8 +11,8 @@ export const MAX_ROWS = 100_000;
 /** Number of equal-width bins in the per-column numeric histogram. */
 export const HIST_BINS = 16;
 
-/** Colormap applied to numeric values for the heatmap (any matplotlib name). */
-export const HEATMAP_CMAP = 'viridis';
+/** Colormap applied to numeric values for Colorize (any matplotlib name). */
+export const DEFAULT_COLORMAP = 'viridis';
 
 export interface DumpPayload {
   total: number;
@@ -20,7 +20,7 @@ export interface DumpPayload {
   indexName: string;
   table: { columns: string[]; index: unknown[]; data: unknown[][] };
   /**
-   * Per-cell background colors for the heatmap, aligned to `table.data`
+   * Per-cell background colors for Colorize, aligned to `table.data`
    * (rows × data columns): a "#rrggbb" string for colored cells, null for
    * uncolored cells (non-numeric/non-datetime, NaN/NaT, or a disabled type).
    * null overall when nothing is colored (no colorable columns, all types
@@ -66,13 +66,13 @@ export interface DumpOptions {
  * and prints the payload. Everything lives inside one temporary function so a
  * kernel's user namespace only ever sees (and loses) one name.
  *
- * Heatmap colors are computed per type group: numeric columns share one
+ * Cell colors are computed per type group: numeric columns share one
  * vmin/vmax, datetime/timedelta columns share a separate one (so timestamps
  * never distort the numeric range). `columnwise` instead ranges each column on
  * its own; `center` makes a range symmetric around 0.
  */
 export function buildDumpCode(objExpr: string, options: DumpOptions = {}): string {
-  const cmap = options.colormap ?? HEATMAP_CMAP;
+  const cmap = options.colormap ?? DEFAULT_COLORMAP;
   const center = options.center ?? false;
   const columnwise = options.columnwise ?? false;
   const colorizeNumeric = options.colorizeNumeric ?? true;
@@ -202,7 +202,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '                return None',
     // Ordered-categorical columns get a bar per category in *category order*
     // (so the rank-based colors read as a gradient), with each bar tinted by the
-    // heatmap colormap at its rank — the bars map 1:1 to the categories.
+    // colormap at its rank — the bars map 1:1 to the categories.
     '        def _bars(_c):',
     '            try:',
     '                if not isinstance(_c.dtype, pd.CategoricalDtype) or not _c.dtype.ordered:',
@@ -321,7 +321,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '    elif pd.api.types.is_datetime64_any_dtype(head.index) or pd.api.types.is_timedelta64_dtype(head.index):',
     '        head.index = [None if pd.isna(i) else str(i) for i in head.index]',
     '    table = head.to_json(orient="split", date_format="iso", default_handler=str)',
-    // Heatmap colors, computed from the original-dtype frame. Numeric, datetime
+    // Cell colors, computed from the original-dtype frame. Numeric, datetime
     // and timedelta columns form three separate range groups (each in its own
     // unit, so they never distort each other); within a group the range is
     // shared, or per-column when columnwise. Ordered categoricals are colored by
@@ -481,9 +481,9 @@ export interface TableContent {
   columns: string[];
   rows: string[][];
   /**
-   * Per-cell heatmap background colors aligned to `rows` (the index column,
+   * Per-cell background colors aligned to `rows` (the index column,
    * like the header, gets a leading null since it is never colored). null when
-   * no heatmap applies.
+   * Colorize is off.
    */
   colors: (string | null)[][] | null;
   /** Per-column dtype info aligned to `columns` (index first), or null. */

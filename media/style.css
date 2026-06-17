@@ -66,7 +66,7 @@ body {
 #filter-toggle.active,
 #stats-toggle.active,
 #hist-toggle.active,
-#heatmap-toggle.active {
+#colorize-toggle.active {
   color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
   background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.25));
 }
@@ -157,17 +157,17 @@ body.filtering #scroller {
 
 /* The Colorize toggle and its settings chevron form one split button: adjacent,
    with the rounded corners only on the outer edges (like the "Run" button). */
-#heatmap-menu {
+#colorize-menu {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
 
-#heatmap-menu .tbtn {
+#colorize-menu .tbtn {
   border-radius: 4px 0 0 4px;
 }
 
-#heatmap-settings {
+#colorize-settings {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -183,11 +183,11 @@ body.filtering #scroller {
   cursor: pointer;
 }
 
-#heatmap-settings:hover {
+#colorize-settings:hover {
   background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.2));
 }
 
-#heatmap-panel {
+#colorize-panel {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -201,18 +201,18 @@ body.filtering #scroller {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
 }
 
-#heatmap-panel[hidden] {
+#colorize-panel[hidden] {
   display: none;
 }
 
-#heatmap-panel .field {
+#colorize-panel .field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
 }
 
-#heatmap-panel .field-check {
+#colorize-panel .field-check {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -221,12 +221,12 @@ body.filtering #scroller {
   cursor: pointer;
 }
 
-#heatmap-panel .field-check input {
+#colorize-panel .field-check input {
   margin: 0;
   cursor: pointer;
 }
 
-#heatmap-panel select {
+#colorize-panel select {
   padding: 2px 4px;
   color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
   background: var(--vscode-dropdown-background, var(--vscode-input-background));

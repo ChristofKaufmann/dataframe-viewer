@@ -95,7 +95,7 @@ test('rows requests after init return the right chunk slice', async () => {
   assert.deepEqual(second.rows[0], [String(CHUNK_SIZE), `v${CHUNK_SIZE}`]);
 });
 
-test('heatmap colors are sliced alongside rows', async () => {
+test('colormap colors are sliced alongside rows', async () => {
   const total = CHUNK_SIZE + 2;
   const colors = Array.from({ length: total }, (_, i) => [null, i % 2 ? '#abcabc' : null]);
   const { handle, posts } = harness(async () => makeData(total, '', colors));
@@ -114,7 +114,7 @@ test('heatmap colors are sliced alongside rows', async () => {
   assert.deepEqual(rows.colors[0], colors[CHUNK_SIZE]);
 });
 
-test('null colors (no heatmap) stay null through init and rows', async () => {
+test('null colors (Colorize off) stay null through init and rows', async () => {
   const { handle, posts } = harness(async () => makeData(CHUNK_SIZE + 1));
   handle({ type: 'ready' });
   await flush();
@@ -165,7 +165,7 @@ test('non-Error rejections are stringified', async () => {
   assert.deepEqual(errors, ['plain string failure']);
 });
 
-test('forwards all heatmap options from ready/refresh to load', async () => {
+test('forwards all Colorize options from ready/refresh to load', async () => {
   const seen: object[] = [];
   const handle = createTableHost({
     load: async (options) => {

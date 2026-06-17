@@ -20,7 +20,7 @@ in the spirit of Data Wrangler but starting small.
   `data.csv.gz`, `sales.tsv.bz2`, `t.parquet.zip`, etc. (`.gz`/`.bz2`/`.zip`/
   `.xz`/`.zst`/`.tar` and `.tar.*`) open like their uncompressed forms
 
-- **Heatmap mode** (the **Colorize** toolbar button, on by default) — cells are
+- **Colorize mode** (the **Colorize** toolbar button, on by default) — cells are
   colored by value, computed in pandas/matplotlib. The **Colorize** button is a
   select-all toggle (active when any type is colored) over three type toggles in
   the popover: **Colorize numeric**,
@@ -35,7 +35,7 @@ in the spirit of Data Wrangler but starting small.
   column instead of one per group). Non-numeric/NaN/NaT cells stay uncolored;
   changing any option recomputes colors in Python on reload. All choices are
   remembered (extension global state) and carry over to the next view.
-  (`HEATMAP_CMAP` in `pandasTable.ts` sets the default colormap.)
+  (`DEFAULT_COLORMAP` in `pandasTable.ts` sets the default colormap.)
 - **Virtualized rendering** — only visible rows are materialized, so large files scroll smoothly
 - Toolbar with a **refresh** button that reloads from the original source (re-runs
   `read_csv` for files, re-queries the kernel for variables — picking up edits and
@@ -65,7 +65,7 @@ in the spirit of Data Wrangler but starting small.
       round numbers); empty bins keep a minimum bar so the full spread stays
       visible, and tick marks with **min / median / max** labels sit below.
     - *Ordinal* (ordered-categorical) columns get one bar per category in
-      category order (`value_counts`), each tinted with the heatmap colormap at
+      category order (`value_counts`), each tinted with the colormap at
       its rank, so the colors read as a left→right gradient.
     - *Unordered* discrete columns (text/string, unordered categorical, bool)
       get a horizontal stacked bar — the most frequent values plus an "(other)"
@@ -122,14 +122,14 @@ Unit tests live in `test/` and cover the pure logic: the pandas data path
 parsing, generated Python), the webview column helpers (`columns.ts` — numeric
 detection, widths, index/sticky cell classes), the load/refresh message loop
 (`tableHost.ts` — init sampling, chunk slicing, refresh, error handling, and the
-busy guard against overlapping reloads), the heatmap text-contrast helper
+busy guard against overlapping reloads), Colorize text-contrast helper
 (`contrast.ts`), and a specificity guard for the row-hover CSS fix.
 
 Press **F5** in VS Code to launch an Extension Development Host with the
 extension loaded, then open `sample-data/cities.csv` with it.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the non-obvious internals — the
-pandas-engine model, the generated-Python rules, the heatmap reload model, and
+pandas-engine model, the generated-Python rules, Colorize reload model, and
 the test/verification workflow.
 
 ## Architecture
@@ -145,7 +145,7 @@ the test/verification workflow.
   dump code with `pd.read_csv` in a Python subprocess
 - `src/pythonRunner.ts` — resolves the interpreter (Python extension API,
   fallback `python3`) and runs scripts
-- `src/heatmapSettings.ts` — reads/writes the persisted heatmap on/off and
+- `src/colorizeSettings.ts` — reads/writes the persisted Colorize on/off and
   colormap in the extension's global state
 - `src/tableWebview.ts` — wires a real webview to the table host (HTML, CSP,
   `postMessage`, error notifications)
@@ -156,7 +156,7 @@ the test/verification workflow.
 - `src/webview/columns.ts` — pure column helpers (numeric detection, widths,
   cell classes), kept DOM-free so they can be unit-tested
 - `src/webview/contrast.ts` — pure helper picking black/white text for a
-  heatmap background color
+  colored cell background
 - `src/webview/dtypes.ts` — maps a column's dtype kind to its header glyph
 - `src/shared/protocol.ts` — typed messages between host and webview
 

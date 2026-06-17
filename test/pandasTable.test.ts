@@ -44,7 +44,7 @@ test('toTable prepends a null index color, aligning colors with rows', () => {
   ]);
 });
 
-test('toTable passes through null colors (no heatmap)', () => {
+test('toTable passes through null colors (Colorize off)', () => {
   assert.equal(toTable(payload({ colors: null })).colors, null);
 });
 
@@ -151,13 +151,13 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   // to_json's ISO format.
   assert.match(code, /is_datetime64_any_dtype/);
   assert.match(code, /None if pd\.isna\(x\) else str\(x\)/);
-  // Heatmap colors are computed in Python via matplotlib, resiliently.
+  // Cell colors are computed in Python via matplotlib, resiliently.
   assert.match(code, /matplotlib/);
   assert.match(code, /colormaps\["viridis"\]/);
   assert.match(code, /"colors": %s/);
   // A chosen colormap is injected safely as a JSON/Python string literal.
   assert.match(buildDumpCode('x', { colormap: 'plasma' }), /colormaps\["plasma"\]/);
-  // The heatmap options are injected as Python booleans.
+  // The Colorize options are injected as Python booleans.
   assert.match(buildDumpCode('x', { center: true }), /_center = True/);
   assert.match(buildDumpCode('x', { center: false }), /_center = False/);
   assert.match(buildDumpCode('x', { columnwise: true }), /_columnwise = True/);
@@ -208,7 +208,7 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /_vc = _c\.value_counts\(\)/);
   assert.match(code, /_counts = \[int\(_vc\.get\(_k, 0\)\) for _k in _cats\]/);
   assert.match(code, /_entry\["bars"\] = _b/);
-  // Bars use the same colormap as the heatmap.
+  // Bars use the same colormap as Colorize.
   assert.match(buildDumpCode('x', { colormap: 'plasma' }), /_cm = _mpl\.colormaps\["plasma"\]/);
   // Unordered discrete columns get a stacked bar: top values + "(other)", a
   // qualitative palette, and the distinct count; attached when not numeric/ordinal.

@@ -38,9 +38,9 @@ const headerEl = document.getElementById('header')!;
 const bodyEl = document.getElementById('body')!;
 const statusEl = document.getElementById('status')!;
 const refreshBtn = document.getElementById('refresh') as HTMLButtonElement;
-const heatmapToggle = document.getElementById('heatmap-toggle') as HTMLButtonElement;
-const settingsBtn = document.getElementById('heatmap-settings') as HTMLButtonElement;
-const heatmapPanel = document.getElementById('heatmap-panel')!;
+const colorizeToggle = document.getElementById('colorize-toggle') as HTMLButtonElement;
+const settingsBtn = document.getElementById('colorize-settings') as HTMLButtonElement;
+const colorizePanel = document.getElementById('colorize-panel')!;
 const colormapSelect = document.getElementById('colormap') as HTMLSelectElement;
 const colormapPreview = document.getElementById('colormap-preview')!;
 const centerCheckbox = document.getElementById('center') as HTMLInputElement;
@@ -80,8 +80,8 @@ let currentFilter = '';
 const manualWidths = new Map<string, number>();
 
 const chunks = new Map<number, string[][]>();
-// Heatmap colors per chunk, parallel to `chunks` (same keys/row layout). A
-// chunk's entry is null when the table has no heatmap colors at all.
+// Cell colors per chunk, parallel to `chunks` (same keys/row layout). A
+// chunk's entry is null when the table has no colormap colors at all.
 const colorChunks = new Map<number, (string | null)[][] | null>();
 const pendingChunks = new Set<number>();
 
@@ -147,7 +147,7 @@ refreshBtn.addEventListener('click', () => {
   }
 });
 
-/** Asks the host to re-read the source with the current heatmap settings. */
+/** Asks the host to re-read the source with the current Colorize settings. */
 function requestReload(): void {
   setRefreshing(true);
   vscode.postMessage({
@@ -169,7 +169,7 @@ function setRefreshing(on: boolean): void {
   refreshBtn.classList.toggle('spinning', on);
 }
 
-// Persist heatmap choices so the next view inherits them.
+// Persist Colorize choices so the next view inherits them.
 function persistSettings(): void {
   vscode.postMessage({
     type: 'settings',
@@ -185,8 +185,8 @@ function persistSettings(): void {
 /** The master "Colorize" button is active when any column type is colorized. */
 function syncMasterButton(): void {
   const any = currentColorizeNumeric || currentColorizeDatetime || currentColorizeCategorical;
-  heatmapToggle.classList.toggle('active', any);
-  heatmapToggle.setAttribute('aria-pressed', String(any));
+  colorizeToggle.classList.toggle('active', any);
+  colorizeToggle.setAttribute('aria-pressed', String(any));
 }
 
 /** A type toggle changed: update state, the master, persist, and reload. */
@@ -203,7 +203,7 @@ colorizeDatetimeCheckbox.addEventListener('change', onColorizeChanged);
 colorizeCategoricalCheckbox.addEventListener('change', onColorizeChanged);
 
 // Master toggle: turn everything on if anything is off, else turn all off.
-heatmapToggle.addEventListener('click', () => {
+colorizeToggle.addEventListener('click', () => {
   const next = !(currentColorizeNumeric || currentColorizeDatetime || currentColorizeCategorical);
   currentColorizeNumeric = next;
   currentColorizeDatetime = next;
@@ -245,14 +245,14 @@ columnwiseCheckbox.addEventListener('change', () => {
 
 // Settings popover: toggle on the chevron, dismiss on outside-click or Escape.
 function setPanelOpen(open: boolean): void {
-  heatmapPanel.hidden = !open;
+  colorizePanel.hidden = !open;
   settingsBtn.setAttribute('aria-expanded', String(open));
 }
 settingsBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  setPanelOpen(heatmapPanel.hidden);
+  setPanelOpen(colorizePanel.hidden);
 });
-heatmapPanel.addEventListener('click', (e) => e.stopPropagation());
+colorizePanel.addEventListener('click', (e) => e.stopPropagation());
 document.addEventListener('click', () => setPanelOpen(false));
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -398,7 +398,7 @@ function buildStatsRow(): void {
         cell.dataset.col = String(c);
       } else if (bars && bars.counts.length) {
         cell.innerHTML = histogramSvg(bars.counts);
-        // Tint each bar with its category's heatmap color (DOM .style.fill is
+        // Tint each bar with its category's colormap color (DOM .style.fill is
         // CSP-safe and overrides the default fill from the stylesheet).
         if (bars.colors) {
           const rects = cell.querySelectorAll('rect');

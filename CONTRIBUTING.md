@@ -14,7 +14,7 @@ module map, see the [README](README.md).
   features should be pandas operations in `buildDumpCode`, not TypeScript
   reimplementations, so files and variables stay identical.
 - Consequence: **viewing files needs a Python env with pandas** (and matplotlib
-  for the heatmap). There's no pure-JS fallback, by design.
+  for Colorize). There's no pure-JS fallback, by design.
 
 ## Data flow
 
@@ -46,7 +46,7 @@ Everything the webview sees is aligned to `columns = [indexName, ...dataColumns]
 - `toTable` prepends the index *value* to each row and a `null` index *color*.
 - Python includes the index's dtype as `columnTypes[0]`.
 - The webview renders column 0 with sticky/`indexcol` styling and never colors it
-  in the heatmap.
+  in Colorize.
 
 If you add another per-column array, keep it index-first and the same length, or
 the columns silently misalign.
@@ -96,7 +96,7 @@ node -e '
 This loop (bundle → run through pandas → inspect `toTable`) is how the data path
 has been validated throughout; reach for it before wiring anything into the UI.
 
-## Heatmap
+## Colorize
 
 The defining decision: **colors are computed in Python, not JavaScript.** The
 payload carries per-cell `#rrggbb`/`null`. Implications:
@@ -106,7 +106,7 @@ payload carries per-cell `#rrggbb`/`null`. Implications:
 - Anything that changes the *colors* — colormap, center, columnwise, the
   per-type "Colorize …" toggles — requires a **reload** (re-run Python), routed
   through `LoadOptions` on the `ready`/`refresh` messages. Only *painting* the
-  already-loaded colors is client-side. So the master Heatmap toggle and friends
+  already-loaded colors is client-side. So the master Colorize toggle and friends
   reload rather than instant-toggle; that's intentional, for one consistent model.
 
 Range grouping (in `buildDumpCode`):
@@ -127,7 +127,7 @@ hardcoded LUT / icon list. If you change the offered colormaps in
 
 ## Sorting
 
-Like the heatmap, sorting is done in **pandas** (a `sort_values` in
+Like Colorize, sorting is done in **pandas** (a `sort_values` in
 `buildDumpCode`), so it's a reload and gets dtype-correct ordering for free —
 ordered categoricals sort by rank, not alphabetically. The webview holds an
 ordered `SortKey[]` (primary first; `column` is a 0-based *data*-column position,
@@ -159,7 +159,7 @@ is per-view like sort (rides on `ready`/`refresh`, not persisted).
 
 ## Column statistics
 
-The stats section under the header is different from heatmap/sort/filter: it does
+The stats section under the header is different from Colorize/sort/filter: it does
 **not** trigger a reload. All per-column stats are computed in `buildDumpCode`
 over the **full filtered `obj`** — before the `head(MAX_ROWS)` truncation, so
 they stay exact on big tables — and ride along in the payload's `stats` field
@@ -201,7 +201,7 @@ centered label — most visible on skewed data.
 
 **Ordered-categorical** columns get the other distribution shape (`_bars` in
 `buildDumpCode`): `value_counts` reindexed to `dtype.categories` (category/rank
-order, including zero-count categories), with each bar tinted by the heatmap
+order, including zero-count categories), with each bar tinted by Colorize
 colormap sampled at its rank. They reuse `histogramSvg` for the bars; the
 per-bar fill is applied in `main.ts` via `rect.style.fill` (DOM CSSOM, which is
 CSP-safe and beats the stylesheet's default fill — an inline `style=` attribute
@@ -242,20 +242,21 @@ keep any formatting/geometry in the pure `webview/stats.ts` so it's unit-tested.
 
 - **Pure modules are the testable core.** Logic lives in DOM-free/vscode-free
   modules — `columns.ts`, `contrast.ts`, `colormaps.ts`, `dtypes.ts`,
-  `tableHost.ts`, `heatmapSettings.ts` (which imports vscode as a **type only**) —
+  `tableHost.ts`, `colorizeSettings.ts` (which imports vscode as a **type only**) —
   so `node:test` can exercise them without a browser or editor. `webview/main.ts`
   is the DOM glue and is intentionally *not* unit-tested. When adding logic,
   extract the pure part.
-- **Settings persistence:** heatmap choices live in `context.globalState`
-  (`heatmapSettings.ts`) so they carry across views/sessions. The toolbar
-  "Heatmap" checkbox is a **derived tri-state select-all** over the two/three
-  colorize flags — there is no separate `enabled` state to keep in sync.
+- **Settings persistence:** Colorize choices live in `context.globalState`
+  (`colorizeSettings.ts`, key `dataViewer.colorize`) so they carry across
+  views/sessions. The toolbar **Colorize** button is a **derived select-all
+  toggle** — active when any of the three colorize flags is on, and there is no
+  separate `enabled` state to keep in sync.
 - **Column widths** are an *estimate* (`CHAR_PX` px/char, with a bold-header
   factor); there's no text measurement. Manually-set widths are remembered by
   **column name** so they survive a refresh.
-- **CSS cascade gotchas:** heatmap colors are applied as inline `background-color`
+- **CSS cascade gotchas:** colormap colors are applied as inline `background-color`
   (so they override the zebra stripe), which also means hover doesn't recolor a
-  heatmapped cell. And the row-hover rule must out-specify the
+  colorized cell. And the row-hover rule must out-specify the
   `.row.alt .cell:not(.indexcol)` stripe rule — `test/styles.test.ts` guards that.
 - **Codicons:** the dtype glyphs use VS Code's bundled codicon font. `esbuild.js`
   copies `codicon.css`/`.ttf` into `dist/codicons/` (gitignored), the webview

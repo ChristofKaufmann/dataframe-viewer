@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { getHeatmapSettings, HeatmapSettings, updateHeatmapSettings } from './heatmapSettings';
+import { getColorizeSettings, ColorizeSettings, updateColorizeSettings } from './colorizeSettings';
 import { createTableHost, LoadOptions, TableData } from './tableHost';
 import { WebviewMessage } from './shared/protocol';
 
 export { LoadOptions, TableData } from './tableHost';
 
-// Colormaps offered in the heatmap settings popover (matplotlib names).
+// Colormaps offered in the Colorize settings popover (matplotlib names).
 const COLORMAP_GROUPS: { label: string; names: string[] }[] = [
   { label: 'Perceptually uniform', names: ['viridis', 'plasma', 'inferno', 'magma', 'cividis'] },
   { label: 'Sequential', names: ['Blues', 'Greens', 'Oranges', 'Greys'] },
@@ -18,7 +18,7 @@ const COLORMAP_GROUPS: { label: string; names: string[] }[] = [
  *
  * `load` re-reads the original data source (file or kernel variable); it runs
  * once when the webview is ready and again whenever the user clicks refresh.
- * Heatmap UI choices are seeded from (and saved back to) the extension's
+ * Colorize UI choices are seeded from (and saved back to) the extension's
  * global state so they persist across views.
  */
 export function configureTableWebview(
@@ -33,7 +33,7 @@ export function configureTableWebview(
       vscode.Uri.joinPath(context.extensionUri, 'media'),
     ],
   };
-  webview.html = getHtml(webview, context.extensionUri, getHeatmapSettings(context));
+  webview.html = getHtml(webview, context.extensionUri, getColorizeSettings(context));
 
   const handle = createTableHost({
     load,
@@ -43,7 +43,7 @@ export function configureTableWebview(
 
   return webview.onDidReceiveMessage((message: WebviewMessage) => {
     if (message.type === 'settings') {
-      void updateHeatmapSettings(context, {
+      void updateColorizeSettings(context, {
         colorizeNumeric: message.colorizeNumeric,
         colorizeDatetime: message.colorizeDatetime,
         colorizeCategorical: message.colorizeCategorical,
@@ -60,7 +60,7 @@ export function configureTableWebview(
 function getHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  settings: HeatmapSettings
+  settings: ColorizeSettings
 ): string {
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'main.js')
@@ -104,10 +104,10 @@ function getHtml(
     <button id="filter-toggle" class="tbtn" title="Filter rows" aria-expanded="false"><span class="codicon codicon-filter"></span><span>Filter</span></button>
     <button id="stats-toggle" class="tbtn" title="Show missing-value counts" aria-pressed="false"><span class="icon">Σ</span><span>Missing</span></button>
     <button id="hist-toggle" class="tbtn" title="Show value distributions" aria-pressed="false"><span class="codicon codicon-graph"></span><span>Graphs</span></button>
-    <div id="heatmap-menu">
-      <button id="heatmap-toggle" class="tbtn${anyColorize ? ' active' : ''}" title="Color cells by value" aria-pressed="${anyColorize}"><span class="codicon codicon-symbol-color"></span><span>Colorize</span></button>
-      <button id="heatmap-settings" title="Colorize settings" aria-expanded="false" aria-haspopup="true"><span class="codicon codicon-chevron-down"></span></button>
-      <div id="heatmap-panel" role="dialog" aria-label="Heatmap settings" hidden>
+    <div id="colorize-menu">
+      <button id="colorize-toggle" class="tbtn${anyColorize ? ' active' : ''}" title="Color cells by value" aria-pressed="${anyColorize}"><span class="codicon codicon-symbol-color"></span><span>Colorize</span></button>
+      <button id="colorize-settings" title="Colorize settings" aria-expanded="false" aria-haspopup="true"><span class="codicon codicon-chevron-down"></span></button>
+      <div id="colorize-panel" role="dialog" aria-label="Colorize settings" hidden>
         <label class="field-check" title="Color numeric columns">
           <input type="checkbox" id="colorize-numeric"${settings.colorizeNumeric ? ' checked' : ''}> Colorize numeric
         </label>
