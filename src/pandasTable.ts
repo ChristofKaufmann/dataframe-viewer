@@ -38,6 +38,12 @@ export interface DumpPayload {
    * not the truncated `head`, so the counts are exact.
    */
   stats: ColumnStat[] | null;
+  /**
+   * A `DataFrame.query` literal for a real index value (a Python `repr`, or a
+   * quoted `str()` for datetime/timedelta), used in the filter hint. null when
+   * there are no rows.
+   */
+  indexClause: string | null;
   /** pandas error message from a failed filter query, or null. */
   filterError: string | null;
 }
@@ -299,6 +305,41 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '            stats.append(_entry)',
     '    except Exception:',
     '        stats = None',
+    // A full `query` clause for a real index value (the 2nd row\'s), for the
+    // filter hint. The left-hand side depends on the index kind: a single index
+    // is `index`; a MultiIndex level must be referenced by its name (`ilevel_N`
+    // only works for *unnamed* levels), backticked when not a clean identifier.
+    // The value is a Python `repr` literal (numbers bare, strings/tuples quoted;
+    // numpy scalars unwrapped via .item()), but a quoted str() for
+    // datetime/timedelta whose repr is a non-query-friendly Timestamp(...).
+    '    index_clause = None',
+    '    try:',
+    '        import keyword as _kw',
+    '        def _lit(_v):',
+    '            try:',
+    '                _v = _v.item()',
+    '            except Exception:',
+    '                pass',
+    '            return repr(_v)',
+    '        def _qcol(_name):',
+    '            _s = str(_name)',
+    '            return _s if _s.isidentifier() and not _kw.iskeyword(_s) else "`" + _s + "`"',
+    '        def _rhs(_v, _is_time):',
+    '            return repr(str(_v)) if _is_time else _lit(_v)',
+    '        _ii = obj.index',
+    '        _pos = 1 if len(_ii) > 1 else (0 if len(_ii) else None)',
+    '        if _pos is not None:',
+    '            if isinstance(_ii, pd.MultiIndex):',
+    '                _name0 = _ii.names[0]',
+    '                _lhs = _qcol(_name0) if _name0 is not None else "ilevel_0"',
+    '                _lv = _ii.get_level_values(0)',
+    '                _it = pd.api.types.is_datetime64_any_dtype(_lv) or pd.api.types.is_timedelta64_dtype(_lv)',
+    '                index_clause = "%s != %s" % (_lhs, _rhs(_lv[_pos], _it))',
+    '            else:',
+    '                _it = pd.api.types.is_datetime64_any_dtype(_ii) or pd.api.types.is_timedelta64_dtype(_ii)',
+    '                index_clause = "index != %s" % _rhs(_ii[_pos], _it)',
+    '    except Exception:',
+    '        index_clause = None',
     `    head = obj.head(${MAX_ROWS}).copy()`,
     // index.names works for both a regular Index (one element) and a
     // MultiIndex (whose .name is always None); join the level names so a
@@ -426,8 +467,8 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '            column_types.append({"dtype": str(_col.dtype), "kind": _kind(_col)})',
     '    except Exception:',
     '        column_types = None',
-    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "stats": %s, "filterError": %s}\'',
-    '          % (total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(stats), json.dumps(_filter_error)))',
+    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "stats": %s, "indexClause": %s, "filterError": %s}\'',
+    '          % (total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(stats), json.dumps(index_clause), json.dumps(_filter_error)))',
     '',
     '_VSCODE_dataviewer_dump()',
     'del _VSCODE_dataviewer_dump',
@@ -492,6 +533,8 @@ export interface TableContent {
   stats: ColumnStat[] | null;
   /** Total rows in the full (filtered) data, before truncation to MAX_ROWS. */
   total: number;
+  /** A `query` literal for a real index value, for the filter hint, or null. */
+  indexClause: string | null;
   /** pandas error message from a failed filter query, or null. */
   filterError: string | null;
   /** Status-bar notice when the data was truncated to MAX_ROWS. */
@@ -523,6 +566,7 @@ export function toTable(payload: DumpPayload): TableContent {
     columnTypes: payload.columnTypes,
     stats: payload.stats,
     total: payload.total,
+    indexClause: payload.indexClause,
     filterError: payload.filterError,
     note,
   };

@@ -27,14 +27,17 @@ function pyStr(value: string): string {
  * A `DataFrame.query` example using this table's columns. Picks a "value" clause
  * by type — numeric `> 0`, else datetime `> '1986-06-30'`, else timedelta
  * `< '1 days 01:23:45'`, else the last column `!= <its first value>` — combines
- * it with a `.notna()` on another column, and ORs in an `index` clause.
+ * it with a `.notna()` on another column, and ORs in `indexClause` (a full
+ * `<ref> != <value>` expression built in pandas, which knows the index dtype —
+ * a single index uses `index`, a MultiIndex uses a level name / `ilevel_N`).
  * `columns`/`columnTypes`/`sample` are index-first; the index is skipped for the
  * column clauses.
  */
 export function filterPlaceholder(
   columns: string[],
   columnTypes: ColumnType[] | null,
-  sample: string[][]
+  sample: string[][],
+  indexClause: string | null
 ): string {
   const data = columns.slice(1);
   if (data.length === 0) {
@@ -66,5 +69,8 @@ export function filterPlaceholder(
   // A .notna() on a different column, grouped with the value clause.
   const naIdx = data.findIndex((_, i) => i !== vIdx);
   const inner = naIdx >= 0 ? `(${quote(data[naIdx])}.notna() & ${valueClause})` : valueClause;
-  return `Filter rows, e.g.  index > 1 | ${inner}`;
+  // OR in the index clause when present. `indexClause` is a complete expression
+  // built in pandas (e.g. `index != 1`, `country != 'FR'`, `ilevel_0 != 'FR'`).
+  const expr = [indexClause, inner].filter(Boolean).join(' | ');
+  return `Filter rows, e.g.  ${expr}`;
 }

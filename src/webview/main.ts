@@ -106,7 +106,12 @@ window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       rowTotal = message.total;
       columnTypes = message.columnTypes;
       columnStats = message.stats;
-      filterInput.placeholder = filterPlaceholder(columns, columnTypes, message.sample);
+      filterInput.placeholder = filterPlaceholder(
+        columns,
+        columnTypes,
+        message.sample,
+        message.indexClause
+      );
       initLayout(message.sample);
       buildStatsRow();
       // The sample only seeds the cache when it covers all of chunk 0;

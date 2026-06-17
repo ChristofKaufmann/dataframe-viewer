@@ -20,6 +20,7 @@ function payload(over: Partial<DumpPayload> = {}): DumpPayload {
     colors: null,
     columnTypes: null,
     stats: null,
+    indexClause: null,
     filterError: null,
     ...over,
   };
@@ -51,6 +52,11 @@ test('toTable passes through null colors (Colorize off)', () => {
 test('toTable passes the filter error through', () => {
   assert.equal(toTable(payload()).filterError, null);
   assert.equal(toTable(payload({ filterError: "name 'nope' is not defined" })).filterError, "name 'nope' is not defined");
+});
+
+test('toTable passes the index example literal through', () => {
+  assert.equal(toTable(payload({ indexClause: "'Paris'" })).indexClause, "'Paris'");
+  assert.equal(toTable(payload()).indexClause, null);
 });
 
 test('toTable passes column stats and the full total through (index-aligned)', () => {
@@ -225,6 +231,16 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /"unique": int\(_vc\.size\)/);
   assert.match(code, /"allUnique": bool\(_cv\[0\] == 1\)/);
   assert.match(code, /_entry\["segments"\] = _s/);
+  // The filter-hint index example: a repr() literal (handles MultiIndex tuples
+  // and numpy scalars via .item()), but a quoted str() for datetime/timedelta.
+  assert.match(code, /"indexClause": %s/);
+  // A single index references `index`; a MultiIndex level uses its (backticked-
+  // if-needed) name, or `ilevel_0` when unnamed; datetime/timedelta use str().
+  assert.match(code, /index_clause = "index != %s" % _rhs/);
+  assert.match(code, /isinstance\(_ii, pd\.MultiIndex\)/);
+  assert.match(code, /"ilevel_0"/);
+  assert.match(code, /_kw\.iskeyword/);
+  assert.match(code, /return repr\(str\(_v\)\) if _is_time else _lit\(_v\)/);
   // Sorting: empty by default; a stable multi-key sort when keys are given.
   assert.match(code, /_sort = \[\]/);
   const sorted = buildDumpCode('df', { sort: [{ column: 2, descending: true }, { column: 0, descending: false }] });
