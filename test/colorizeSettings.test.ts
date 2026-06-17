@@ -26,6 +26,8 @@ test('defaults to colorize all + viridis + uncentered + grouped when nothing sav
     colormap: 'viridis',
     center: false,
     columnwise: false,
+    showMissing: true,
+    showGraphs: true,
   });
 });
 
@@ -39,13 +41,17 @@ test('round-trips saved settings', async () => {
     colormap: 'plasma',
     center: true,
     columnwise: true,
+    showMissing: false,
+    showGraphs: false,
   };
   await updateColorizeSettings(ctx, saved);
   assert.deepEqual(getColorizeSettings(ctx), saved);
 });
 
 test('fills in missing fields from a partial saved value', () => {
-  const ctx = fakeContext({ 'dataViewer.colorize': { colormap: 'magma', colorizeDatetime: false } });
+  const ctx = fakeContext({
+    'dataViewer.colorize': { colormap: 'magma', colorizeDatetime: false, showGraphs: false },
+  });
   assert.deepEqual(getColorizeSettings(ctx), {
     colorizeNumeric: true,
     colorizeDatetime: false,
@@ -54,5 +60,7 @@ test('fills in missing fields from a partial saved value', () => {
     colormap: 'magma',
     center: false,
     columnwise: false,
+    showMissing: true,
+    showGraphs: false,
   });
 });

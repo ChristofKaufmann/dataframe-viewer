@@ -93,7 +93,7 @@ export type WebviewMessage =
   | ({ type: 'ready'; sort: SortKey[]; filter: string } & ColorizeChoices)
   | ({ type: 'refresh'; sort: SortKey[]; filter: string } & ColorizeChoices)
   | { type: 'rows'; chunk: number }
-  /** Persist Colorize UI choices so they carry over to the next view. */
+  /** Persist view-UI choices (Colorize + stats-row toggles) for the next view. */
   | {
       type: 'settings';
       colormap: string;
@@ -103,6 +103,8 @@ export type WebviewMessage =
       colorizeDatetime: boolean;
       colorizeCategorical: boolean;
       colorizeText: boolean;
+      showMissing: boolean;
+      showGraphs: boolean;
     };
 
 /** Extension host -> webview */

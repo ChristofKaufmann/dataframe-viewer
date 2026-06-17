@@ -179,7 +179,11 @@ holds two **sub-rows**, each a labelled grid row: missing counts (**Σ**,
 Both sub-rows are always built; a toggle only flips its body
 class, and CSS hides the inactive sub-row's cells (`display:none`) so the other
 **reflows up** to the top of the grid — no rebuild on toggle. Each sub-row's
-leftmost (sticky) cell labels it instead of showing the index's own value.
+leftmost (sticky) cell labels it instead of showing the index's own value. Both
+toggles **persist** (default on) in the same global-state store as Colorize:
+their initial `active` class is baked into the button HTML, and toggling posts a
+`settings` message — no reload (the rows ride along with every load; the toggle
+is purely CSS).
 
 The histogram bins on a **"nice" rounded grid** (Heckbert): a step of the form
 {1,2,5}×10ᵏ is picked near `range / HIST_BINS`, the low/high edges are snapped
@@ -294,11 +298,11 @@ keep any formatting/geometry in the pure `webview/stats.ts` so it's unit-tested.
   so `node:test` can exercise them without a browser or editor. `webview/main.ts`
   is the DOM glue and is intentionally *not* unit-tested. When adding logic,
   extract the pure part.
-- **Settings persistence:** Colorize choices live in `context.globalState`
-  (`colorizeSettings.ts`, key `dataViewer.colorize`) so they carry across
-  views/sessions. The toolbar **Colorize** button is a **derived select-all
-  toggle** — active when any of the three colorize flags is on, and there is no
-  separate `enabled` state to keep in sync.
+- **Settings persistence:** Colorize choices *and* the Missing/Graphs stats
+  toggles live in `context.globalState` (`colorizeSettings.ts`, key
+  `dataViewer.colorize`) so they carry across views/sessions. The toolbar
+  **Colorize** button is a **derived select-all toggle** — active when any of the
+  colorize flags is on, and there is no separate `enabled` state to keep in sync.
 - **Column widths** are an *estimate* (`CHAR_PX` px/char, with a bold-header
   factor); there's no text measurement. Manually-set widths are remembered by
   **column name** so they survive a refresh.

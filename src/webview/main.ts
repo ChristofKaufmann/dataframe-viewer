@@ -91,6 +91,9 @@ let currentColorizeNumeric = colorizeNumericCheckbox.checked;
 let currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
 let currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
 let currentColorizeText = colorizeTextCheckbox.checked;
+// Stats-row toggles: initial (persisted) state is baked into the buttons' HTML.
+let currentShowMissing = statsToggle.classList.contains('active');
+let currentShowGraphs = histToggle.classList.contains('active');
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -173,7 +176,7 @@ function setRefreshing(on: boolean): void {
   refreshBtn.classList.toggle('spinning', on);
 }
 
-// Persist Colorize choices so the next view inherits them.
+// Persist view-UI choices (Colorize + stats toggles) so the next view inherits them.
 function persistSettings(): void {
   vscode.postMessage({
     type: 'settings',
@@ -184,6 +187,8 @@ function persistSettings(): void {
     colorizeDatetime: currentColorizeDatetime,
     colorizeCategorical: currentColorizeCategorical,
     colorizeText: currentColorizeText,
+    showMissing: currentShowMissing,
+    showGraphs: currentShowGraphs,
   });
 }
 
@@ -321,7 +326,11 @@ filterClear.addEventListener('click', () => {
 // the histogram row. Both ride along with every load, so toggling is purely a
 // CSS show/hide (no reload). Hiding a sub-row's cells via display:none lets the
 // other sub-row's cells reflow to the top of the grid, so no rebuild is needed.
-function wireStatsToggle(btn: HTMLButtonElement, bodyClass: string): void {
+function wireStatsToggle(
+  btn: HTMLButtonElement,
+  bodyClass: string,
+  setShown: (shown: boolean) => void
+): void {
   btn.addEventListener('click', () => {
     if (btn.disabled) {
       return;
@@ -330,15 +339,16 @@ function wireStatsToggle(btn: HTMLButtonElement, bodyClass: string): void {
     document.body.classList.toggle(bodyClass, shown);
     btn.classList.toggle('active', shown);
     btn.setAttribute('aria-pressed', String(shown));
+    setShown(shown);
+    persistSettings();
   });
-  // Both rows are shown by default; buildStatsRow() disables them if the source
-  // produced no stats.
-  document.body.classList.add(bodyClass);
-  btn.classList.add('active');
-  btn.setAttribute('aria-pressed', 'true');
+  // Apply the initial (persisted) state baked into the button's HTML.
+  const initial = btn.classList.contains('active');
+  document.body.classList.toggle(bodyClass, initial);
+  btn.setAttribute('aria-pressed', String(initial));
 }
-wireStatsToggle(statsToggle, 'stats-missing');
-wireStatsToggle(histToggle, 'stats-hist');
+wireStatsToggle(statsToggle, 'stats-missing', (shown) => (currentShowMissing = shown));
+wireStatsToggle(histToggle, 'stats-hist', (shown) => (currentShowGraphs = shown));
 
 /**
  * (Re)builds the stats section to match `columns`: a "missing" sub-row (counts)
@@ -362,6 +372,16 @@ function buildStatsRow(): void {
   }
   statsToggle.disabled = false;
   histToggle.disabled = false;
+  // Re-apply the persisted shown state, which the no-stats branch above may have
+  // cleared on an earlier (empty) load.
+  for (const [btn, cls, shown] of [
+    [statsToggle, 'stats-missing', currentShowMissing],
+    [histToggle, 'stats-hist', currentShowGraphs],
+  ] as const) {
+    document.body.classList.toggle(cls, shown);
+    btn.classList.toggle('active', shown);
+    btn.setAttribute('aria-pressed', String(shown));
+  }
 
   // Missing-counts sub-row.
   for (let c = 0; c < columns.length; c++) {
