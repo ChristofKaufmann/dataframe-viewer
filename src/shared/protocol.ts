@@ -24,13 +24,22 @@ export interface ColumnStat {
   /** Count of missing (NaN/NaT/None) values across all rows, before truncation. */
   missing: number;
   /**
-   * Histogram for numeric columns (over non-null values), or absent for
-   * non-numeric columns. Bins use a "nice" rounded grid, so `edges` (length
-   * `counts.length + 1`) are readable round numbers shown verbatim. `min`,
-   * `median` and `max` are the actual data values (rounded for labels), which
-   * lie within the grid range.
+   * Histogram for numeric/datetime/timedelta columns (over non-null values), or
+   * absent otherwise. `edges` (length `counts.length + 1`) and `min`/`median`/
+   * `max` are *numeric positions* for geometry — the value itself for numeric, or
+   * epoch-/total-seconds for datetime/timedelta. For numeric columns the edges
+   * are a "nice" rounded grid shown verbatim; datetime/timedelta instead carry
+   * `labels` (date / duration strings) that the webview displays in place of the
+   * numbers, with calendar-/duration-aware bin boundaries.
    */
-  histogram?: { counts: number[]; edges: number[]; min: number; median: number; max: number };
+  histogram?: {
+    counts: number[];
+    edges: number[];
+    min: number;
+    median: number;
+    max: number;
+    labels?: { edges: string[]; min: string; median: string; max: string };
+  };
   /**
    * Bar chart for ordered-categorical columns: one entry per category, in
    * category (rank) order. `colors` are the colormap sampled at each

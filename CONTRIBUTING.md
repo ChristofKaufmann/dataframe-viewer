@@ -193,6 +193,18 @@ drawn by the pure `histogramSvg()` in `webview/stats.ts`: a `viewBox="0 0 bins
 **never rebuilds on resize**. Empty bins still get `HIST_MIN_BAR` so the spread
 stays visible.
 
+**Datetime/timedelta** share that histogram, with two twists. (1) Edges are
+**calendar-/duration-aware**: `_date_edges` picks the finest `pd.date_range`
+frequency (`YS`/`MS`/`D`/`h`/…) giving ≤ `HIST_BINS` bins and snaps the start to
+that boundary; timedeltas use a nice-duration step (`_td_step`). (2) The payload
+splits *position* from *label*: `edges`/`min`/`median`/`max` are numeric seconds
+(epoch-seconds for dates, total-seconds for durations) so all the geometry
+(`markerFraction`, ticks) is unchanged, while an optional `labels` object carries
+the date/duration **strings** the webview shows instead of `formatNumber`.
+Positions are normalized via `astype("datetime64[ns]")`/`timedelta64[ns]` first —
+a bare `astype("int64")` is **not** nanoseconds for `[s]`/`[us]`-resolution
+columns, which would silently mis-scale the counts against the ns-based edges.
+
 The actual data **min/median/max** (rounded to 3 sig figs in Python, separate
 from the grid edges) ride along too. Ticks are drawn in their own thin
 **`tickStripSvg`** below the bars (a fixed-height strip, so the tick length is in

@@ -16,7 +16,6 @@ import {
   binIndexAt,
   formatNumber,
   formatPercent,
-  histogramBin,
   histogramSvg,
   markerFraction,
   segmentAt,
@@ -438,17 +437,19 @@ function buildStatsRow(): void {
         // "(min)" / "(median)" / "(max)" caption, aligned left/center/right.
         const axis = document.createElement('div');
         axis.className = 'hist-axis';
-        const labels: [number, string][] = [
-          [hist.min, 'min'],
-          [hist.median, 'median'],
-          [hist.max, 'max'],
+        // datetime/timedelta carry date/duration label strings; numeric uses the
+        // formatted numbers.
+        const labels: [string, string][] = [
+          [hist.labels ? hist.labels.min : formatNumber(hist.min), 'min'],
+          [hist.labels ? hist.labels.median : formatNumber(hist.median), 'median'],
+          [hist.labels ? hist.labels.max : formatNumber(hist.max), 'max'],
         ];
-        for (const [v, name] of labels) {
+        for (const [text, name] of labels) {
           const item = document.createElement('div');
           item.className = 'ax';
           const val = document.createElement('span');
           val.className = 'ax-val';
-          val.textContent = formatNumber(v);
+          val.textContent = text;
           const cap = document.createElement('span');
           cap.className = 'ax-cap';
           cap.textContent = `(${name})`;
@@ -517,8 +518,11 @@ function showHistBubble(e: MouseEvent): void {
   } else {
     const bin = binIndexAt(fx, counts.length);
     if (stat.histogram) {
-      const { lo, hi } = histogramBin(stat.histogram, bin);
-      label = `${formatNumber(lo)} – ${formatNumber(hi)}`;
+      const h = stat.histogram;
+      // datetime/timedelta carry edge label strings; numeric formats the numbers.
+      const lo = h.labels ? h.labels.edges[bin] : formatNumber(h.edges[bin]);
+      const hi = h.labels ? h.labels.edges[bin + 1] : formatNumber(h.edges[bin + 1]);
+      label = `${lo} – ${hi}`;
     } else {
       label = stat.bars?.labels[bin] ?? '';
     }

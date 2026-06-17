@@ -193,20 +193,26 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /stats = \[\{"missing": _missing\(obj\.index\)\}\]/);
   // Stats are counted before the head() truncation so they stay exact.
   assert.ok(code.indexOf('_missing(obj.index)') < code.indexOf(`head = obj.head(`));
-  // Numeric (non-bool) columns also get a histogram via numpy over non-null
-  // values, binned on a "nice" rounded grid (step from range/HIST_BINS), and
-  // attached only when computable.
+  // Numeric (non-bool) columns get a histogram via numpy over non-null values,
+  // binned on a "nice" rounded grid (step from range/HIST_BINS), attached when
+  // computable. HIST_BINS is injected as the Python `_HB`.
+  assert.match(code, new RegExp(`_HB = ${HIST_BINS}`));
   assert.match(code, /_v\[_np\.isfinite\(_v\)\]/);
-  assert.match(code, new RegExp(`_nice\\(\\(_hi - _lo\\) / ${HIST_BINS}, True\\)`));
+  assert.match(code, /_nice\(\(_hi - _lo\) \/ _HB, True\)/);
   assert.match(code, /_np\.floor\(_lo \/ _step\) \* _step/);
   assert.match(code, /_np\.histogram\(_v, bins=_edges\)/);
   assert.match(code, /"edges": \[round\(float\(_e\), _dec\)/);
-  // Actual data min/median/max (rounded to 3 sig figs) accompany the bins for
-  // the axis labels/ticks.
-  assert.match(code, /def _sig\(_x\):/);
   assert.match(code, /_md = float\(_np\.median\(_v\)\)/);
   assert.match(code, /"min": _sig\(_lo\), "median": _sig\(_md\), "max": _sig\(_hi\)/);
   assert.match(code, /_entry\["histogram"\] = _h/);
+  // Datetime/timedelta also get a histogram, with calendar-/duration-aware edges
+  // and date/duration label strings (positions normalized to ns first).
+  assert.match(code, /def _date_edges\(_lo, _hi\):/);
+  assert.match(code, /pd\.date_range\(start=_start, end=_hi, freq=_freq\)/);
+  assert.match(code, /def _td_step\(_span\):/);
+  assert.match(code, /_vv\.astype\("datetime64\[ns\]"\)\.astype\("int64"\)/);
+  assert.match(code, /_vv\.astype\("timedelta64\[ns\]"\)\.astype\("int64"\)/);
+  assert.match(code, /"labels": \{"edges": _elabels/);
   // Ordered-categorical columns get a bar-per-category (in category order) with
   // colormap colors; attached only when the column isn't numeric.
   assert.match(code, /def _bars\(_c\):/);

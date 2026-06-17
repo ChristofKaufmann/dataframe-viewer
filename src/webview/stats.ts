@@ -138,15 +138,20 @@ export function barTopFraction(counts: number[], i: number): number {
   return (HIST_VIEW_H - barHeight(counts[i] ?? 0, max)) / HIST_VIEW_H;
 }
 
-/** A numeric column's histogram on a "nice" rounded grid, as shipped in `ColumnStat`. */
+/** A numeric/datetime/timedelta column's histogram, as shipped in `ColumnStat`. */
 export interface Histogram {
   counts: number[];
-  /** Bin edges on the nice grid; length is `counts.length + 1`. */
+  /** Bin edge *positions* (numeric for geometry); length is `counts.length + 1`. */
   edges: number[];
-  /** Actual data min/median/max (rounded for labels), within the grid range. */
+  /** Actual data min/median/max positions, within the edge range. */
   min: number;
   median: number;
   max: number;
+  /**
+   * Display strings for datetime/timedelta axes (date / duration text), shown in
+   * place of `formatNumber` on the numeric positions. Absent for numeric columns.
+   */
+  labels?: { edges: string[]; min: string; median: string; max: string };
 }
 
 /**

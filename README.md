@@ -1,7 +1,6 @@
 # Data Viewer
 
-A minimal VS Code extension for viewing tabular data files — read-only for now,
-in the spirit of Data Wrangler but starting small.
+View tabular Jupyter variables and data files.
 
 ## Features (v0.0.1)
 
@@ -66,6 +65,9 @@ in the spirit of Data Wrangler but starting small.
       binned on a "nice" rounded grid of ≈16 bins so the edges are readable
       round numbers); empty bins keep a minimum bar so the full spread stays
       visible, and tick marks with **min / median / max** labels sit below.
+    - *Datetime / timedelta* columns get the same histogram, but with
+      **calendar-/duration-aware** bins (year/month/day/hour… boundaries for
+      dates, nice durations for timedeltas) and date/duration labels.
     - *Ordinal* (ordered-categorical) columns get one bar per category in
       category order (`value_counts`), each tinted with the colormap at
       its rank, so the colors read as a left→right gradient.
