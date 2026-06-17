@@ -311,6 +311,24 @@ Jupyter variable viewer (`jupyterVariableViewer.ts`):
   `text/plain` fallback). If "kernel returned no data" reappears, suspect this.
 - The kernel is re-acquired on every (re)load, so refresh survives a restart.
 
+Debugger variables (`jupyterVariableViewer.ts`, `openDebugVariable`):
+
+- The same `jupyterVariableViewers` command also fires from the **debugger's**
+  variables pane ("View Value in Data Viewer"), distinguished by a `frameId` on
+  the argument. There's no kernel, so we go over the **Debug Adapter Protocol**
+  (`vscode.debug.activeDebugSession.customRequest(...)`) instead.
+- DAP `evaluate` returns a value only for a single *expression* and doesn't hand
+  back stdout, so the generated script is built with `outputFile` (writes its JSON
+  to a temp file rather than `print`) and wrapped as one expression:
+  `exec(base64-decoded-source, {**globals(), **locals()})`. base64 dodges all
+  quoting; the merged namespace makes the target variable — a frame **local** —
+  visible to the generated function (which sees it as a global). The host then
+  reads and deletes the temp file.
+- A `frameId` is only valid while paused at that frame, so each (re)load
+  **re-resolves the thread's current top frame** via `stackTrace` (the thread is
+  found once by scanning for the original `frameId`). Stepping/continuing keeps
+  Refresh working; a terminated session surfaces a clear evaluate error.
+
 File path (`pythonRunner.ts`):
 
 - The interpreter is resolved from the Python extension's selected environment,

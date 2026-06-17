@@ -67,6 +67,12 @@ export interface DumpOptions {
   sort?: SortKey[];
   /** A pandas `DataFrame.query` expression; empty = no filter. */
   filter?: string;
+  /**
+   * Write the JSON payload to this file (UTF-8) instead of printing it to stdout.
+   * Used by the debugger path, which evaluates the script over the Debug Adapter
+   * Protocol (no stdout to stream) and reads the file back.
+   */
+  outputFile?: string;
 }
 
 /**
@@ -95,6 +101,19 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '[' + sortKeys.map((k) => `(${k.column}, ${k.descending ? 'True' : 'False'})`).join(', ') + ']';
   // A JSON string literal is a valid Python string literal (handles escaping).
   const filterLiteral = JSON.stringify(options.filter ?? '');
+  // The payload is emitted either to stdout (kernel path, streamed) or to a file
+  // (debugger path, read back by the host); the format string and args are shared.
+  const payloadFmt =
+    '\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "stats": %s, "filterHint": %s, "filterError": %s}\'';
+  const payloadArgs =
+    '(total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(stats), json.dumps(filter_hint), json.dumps(_filter_error))';
+  const emitPayload = options.outputFile
+    ? [
+        `    with open(${JSON.stringify(options.outputFile)}, "w", encoding="utf-8") as _dvf:`,
+        `        _dvf.write(${payloadFmt}`,
+        `              % ${payloadArgs})`,
+      ]
+    : [`    print(${payloadFmt}`, `          % ${payloadArgs})`];
   return [
     'def _VSCODE_dataviewer_dump():',
     '    import csv',
@@ -637,8 +656,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '            column_types.append({"dtype": str(_col.dtype), "kind": _kind(_col)})',
     '    except Exception:',
     '        column_types = None',
-    '    print(\'{"total": %d, "indexName": %s, "table": %s, "colors": %s, "columnTypes": %s, "stats": %s, "filterHint": %s, "filterError": %s}\'',
-    '          % (total, json.dumps(index_name), table, json.dumps(colors), json.dumps(column_types), json.dumps(stats), json.dumps(filter_hint), json.dumps(_filter_error)))',
+    ...emitPayload,
     '',
     '_VSCODE_dataviewer_dump()',
     'del _VSCODE_dataviewer_dump',

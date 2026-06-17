@@ -308,6 +308,19 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.doesNotMatch(code, /showIndex/);
 });
 
+test('buildDumpCode prints to stdout by default, writes to a file when asked', () => {
+  // Default: the payload goes to stdout (the kernel path streams it).
+  const stdoutCode = buildDumpCode('x');
+  assert.match(stdoutCode, /^ {4}print\('\{"total": %d/m);
+  assert.doesNotMatch(stdoutCode, /open\(/);
+  // outputFile: the same payload is written to the given file (the debugger path
+  // reads it back), with the path as an escaped Python/JSON string literal.
+  const fileCode = buildDumpCode('x', { outputFile: '/tmp/dv out.json' });
+  assert.match(fileCode, /with open\("\/tmp\/dv out\.json", "w", encoding="utf-8"\) as _dvf:/);
+  assert.match(fileCode, /_dvf\.write\('\{"total": %d/);
+  assert.doesNotMatch(fileCode, /print\(/);
+});
+
 test('parquetReadExpression reads via pd.read_parquet with an escaped path', () => {
   assert.equal(parquetReadExpression('/tmp/a.parquet'), 'pd.read_parquet("/tmp/a.parquet")');
 });
