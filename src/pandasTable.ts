@@ -135,6 +135,37 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '        if _sep is None:',
     '            return pd.read_csv(path, sep=None, engine="python")',
     '        return pd.read_csv(path, sep=_sep)',
+    // Load a .npy (one array) or .npz (one or more named arrays) into a DataFrame.
+    // allow_pickle stays False so opening a file can\'t execute pickled code. A lone
+    // array (a .npy, or a .npz holding exactly one — e.g. np.savez of a matrix, kept
+    // under "arr_0") becomes the frame directly: 1-D → one column, >2-D collapses
+    // its trailing axes. A multi-array .npz becomes a frame of its named columns.
+    '    def _read_numpy(path):',
+    '        import numpy as _np',
+    '        def _frame(_arr):',
+    '            _arr = _np.asarray(_arr)',
+    '            if _arr.ndim == 0:',
+    '                _arr = _arr.reshape(1)',
+    '            if _arr.ndim > 2:',
+    '                _arr = _arr.reshape(_arr.shape[0], -1)',
+    '            return pd.DataFrame(_arr)',
+    '        _obj = _np.load(path, allow_pickle=False)',
+    '        if hasattr(_obj, "files"):',
+    '            _keys = list(_obj.files)',
+    '            if len(_keys) == 1:',
+    '                return _frame(_obj[_keys[0]])',
+    // A multi-array .npz maps to columns, so each array must be 1-D and the same
+    // length. squeeze() first so a column saved as (N, 1) or (1, N) counts as 1-D
+    // (atleast_1d keeps a (1, 1) from collapsing to a scalar). Genuinely 2-D arrays
+    // raise our own message (clearer than pandas\' "Per-column arrays must each be
+    // 1-dimensional"), listing each array\'s original shape.
+    '            _raw = [_np.asarray(_obj[_k]) for _k in _keys]',
+    '            _arrs = [_np.atleast_1d(_np.squeeze(_a)) for _a in _raw]',
+    '            if any(_a.ndim != 1 for _a in _arrs) or len({_a.shape[0] for _a in _arrs}) > 1:',
+    '                _shapes = ", ".join("%s=%s" % (_k, _a.shape) for _k, _a in zip(_keys, _raw))',
+    '                raise ValueError("This .npz holds multiple arrays that are not 1-D columns of equal length (%s). Data Viewer can show a .npz as a table only when it is a single array or several 1-D arrays (each (N,), (N, 1) or (1, N)) of the same length." % _shapes)',
+    '            return pd.DataFrame(dict(zip(_keys, _arrs)))',
+    '        return _frame(_obj)',
     `    obj = ${objExpr}`,
     '    if isinstance(obj, pd.Series):',
     '        obj = obj.to_frame()',
@@ -718,6 +749,11 @@ export function featherReadExpression(fsPath: string): string {
 /** Expression reading a JSON Lines file (one record per line); no extra dep. */
 export function jsonLinesReadExpression(fsPath: string): string {
   return `pd.read_json(${JSON.stringify(fsPath)}, lines=True)`;
+}
+
+/** Expression reading a NumPy .npy (single array) or .npz (dict of arrays). */
+export function numpyReadExpression(fsPath: string): string {
+  return `_read_numpy(${JSON.stringify(fsPath)})`;
 }
 
 /**

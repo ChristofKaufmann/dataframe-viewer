@@ -46,7 +46,7 @@
         "displayName": "Data Viewer",
         "selector": [
           {
-            "filenamePattern": "*.{parquet,pq,feather}"
+            "filenamePattern": "*.{parquet,pq,feather,npy,npz}"
           },
           {
             "filenamePattern": "*.{parquet,pq}.{gz,bz2,zip,xz,zst,tar}"

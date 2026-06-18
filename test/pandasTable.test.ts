@@ -6,6 +6,7 @@ import {
   featherReadExpression,
   HIST_BINS,
   jsonLinesReadExpression,
+  numpyReadExpression,
   parquetReadExpression,
   DumpPayload,
   parsePayload,
@@ -346,6 +347,24 @@ test('featherReadExpression reads via pd.read_feather with an escaped path', () 
 
 test('jsonLinesReadExpression reads via pd.read_json with lines=True', () => {
   assert.equal(jsonLinesReadExpression('/tmp/a.jsonl'), 'pd.read_json("/tmp/a.jsonl", lines=True)');
+});
+
+test('numpyReadExpression reads via the _read_numpy helper with an escaped path', () => {
+  assert.equal(numpyReadExpression('/tmp/a.npy'), '_read_numpy("/tmp/a.npy")');
+  // The helper it calls is defined in the dump preamble and never pickles.
+  const code = buildDumpCode(numpyReadExpression('/tmp/a.npz'));
+  assert.match(code, /def _read_numpy\(path\):/);
+  assert.match(code, /_np\.load\(path, allow_pickle=False\)/);
+  assert.match(code, /if hasattr\(_obj, "files"\):/);
+  // A lone array (.npy, or a single-array .npz) goes through _frame like the .npy
+  // case; only a multi-array .npz becomes a dict of named columns.
+  assert.match(code, /if len\(_keys\) == 1:\n.*return _frame\(_obj\[_keys\[0\]\]\)/);
+  // Multi-array columns are squeezed so (N, 1)/(1, N) count as 1-D; only genuinely
+  // 2-D arrays (or mismatched lengths) get a clear error.
+  assert.match(code, /_arrs = \[_np\.atleast_1d\(_np\.squeeze\(_a\)\) for _a in _raw\]/);
+  assert.match(code, /if any\(_a\.ndim != 1 for _a in _arrs\) or len\(\{_a\.shape\[0\] for _a in _arrs\}\) > 1:/);
+  assert.match(code, /raise ValueError\("This \.npz holds multiple arrays/);
+  assert.match(code, /obj = _read_numpy\("\/tmp\/a\.npz"\)/);
 });
 
 test('buildDumpCode reads CSV files via the delimiter-sniffing helper', () => {

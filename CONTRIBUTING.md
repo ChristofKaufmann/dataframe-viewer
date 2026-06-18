@@ -359,12 +359,17 @@ File path (`pythonRunner.ts`):
   (see `sample-data/jup-vars.py`).
 - **Adding a file format** is small: register the extension in a `customEditors`
   selector in `package.json` (text formats CSV/TSV go in `dataViewer.table`,
-  `priority: option`; binary formats Parquet/Feather go in `dataViewer.binary`,
+  `priority: option`; binary formats Parquet/Feather/NumPy go in
+  `dataViewer.binary`,
   `priority: default` since binary has no text view — both contributions point at
   the one provider), and pick the read expression by extension in `loadData`
   (`csvReadExpression` / `parquetReadExpression` / `featherReadExpression` /
-  `jsonLinesReadExpression`).
-  Everything downstream is format-agnostic. A format that shouldn't default-open
+  `jsonLinesReadExpression` / `numpyReadExpression`).
+  Everything downstream is format-agnostic — a read expression just has to yield
+  something `pd.DataFrame(...)` accepts. NumPy is the one reader needing a preamble
+  helper (`_read_numpy`, beside `_read_csv`): `np.load(allow_pickle=False)`, then a
+  `.npy` array → DataFrame (1-D → one column, >2-D collapsed to 2-D) or a `.npz`
+  → DataFrame of its named arrays. A format that shouldn't default-open
   (e.g. the ambiguous `*.arrow`) goes in the `option` selector and the
   `explorer/context` menu's `when` clause instead, so it's reachable via
   right-click → Open in Data Viewer without claiming the file.
