@@ -25,8 +25,8 @@ plt.scatter(x, y, s=1150, c=c, marker='h')
 plt.axis('equal')
 plt.axis('off')
 plt.xlim(-1.4, 1.4)
-# fig.savefig('logo.svg', transparent=True, bbox_inches='tight')  # SVG not allowed in Marketplace
-fig.savefig('logo.png', transparent=True, bbox_inches='tight')
+# fig.savefig('icon.svg', transparent=True, bbox_inches='tight')  # SVG not allowed in Marketplace
+fig.savefig('icon.png', transparent=True, bbox_inches='tight')
 
 # POST-PROCESSING:
-# convert logo.png -trim logo.png
+# convert icon.png -trim icon.png
