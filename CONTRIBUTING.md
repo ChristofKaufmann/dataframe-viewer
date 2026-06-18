@@ -357,22 +357,21 @@ File path (`pythonRunner.ts`):
   Interpreter"** retry loop. A CSV column can't carry an ordered categorical
   dtype (read_csv yields strings) — exercise that feature via a Jupyter variable
   (see `sample-data/jup-vars.py`).
-- **Adding a file format** is small: register the extension in a `customEditors`
-  selector in `package.json` (text formats CSV/TSV go in `dataViewer.table`,
-  `priority: option`; binary formats Parquet/Feather/NumPy go in
-  `dataViewer.binary`,
-  `priority: default` since binary has no text view — both contributions point at
-  the one provider), and pick the read expression by extension in `loadData`
+- **Adding a file format** is small: add the extension to the `dataViewer.table`
+  `customEditors` selector in `package.json` and to the `explorer/context` menu's
+  `when` clause, then pick the read expression by extension in `loadData`
   (`csvReadExpression` / `parquetReadExpression` / `featherReadExpression` /
-  `jsonLinesReadExpression` / `numpyReadExpression`).
+  `jsonLinesReadExpression` / `numpyReadExpression`). Every format is **opt-in**:
+  the one editor has `priority: option`, so it never claims a file as the default
+  editor — it's reached via right-click → **Open in Data Viewer** (the `when`
+  clause) or **Reopen Editor With…**. This keeps the text editor the default for
+  CSV/TSV and leaves binaries (Parquet/Feather/NumPy) on their normal default,
+  matching one consistent behavior across all formats.
   Everything downstream is format-agnostic — a read expression just has to yield
   something `pd.DataFrame(...)` accepts. NumPy is the one reader needing a preamble
   helper (`_read_numpy`, beside `_read_csv`): `np.load(allow_pickle=False)`, then a
   `.npy` array → DataFrame (1-D → one column, >2-D collapsed to 2-D) or a `.npz`
-  → DataFrame of its named arrays. A format that shouldn't default-open
-  (e.g. the ambiguous `*.arrow`) goes in the `option` selector and the
-  `explorer/context` menu's `when` clause instead, so it's reachable via
-  right-click → Open in Data Viewer without claiming the file.
+  → DataFrame of its named arrays.
 - **Compression** is mostly free: pandas infers it from the path, so the
   selectors just add brace-glob variants (`*.{csv,tsv}.{gz,bz2,zip,xz,zst,tar}`
   …), and `loadData` strips the compression suffix before the parquet-vs-csv

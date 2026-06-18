@@ -24,10 +24,11 @@ class TableDocument implements vscode.CustomDocument {
 }
 
 export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<TableDocument> {
-  // Text formats (CSV/TSV, opt-in) and binary formats (Parquet/Feather, opened
-  // by default) share one provider; the reader is chosen per file by extension.
+  // All formats (CSV/TSV, Parquet/Feather, NumPy, …) are opt-in: the editor has
+  // `priority: option`, so it's reached via "Open in Data Viewer" / "Reopen Editor
+  // With…" rather than replacing the default. The reader is chosen per file by
+  // extension in loadData.
   static readonly viewType = 'dataViewer.table';
-  static readonly binaryViewType = 'dataViewer.binary';
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new TableEditorProvider(context);
@@ -35,13 +36,10 @@ export class TableEditorProvider implements vscode.CustomReadonlyEditorProvider<
       webviewOptions: { retainContextWhenHidden: true },
       supportsMultipleEditorsPerDocument: true,
     };
-    return vscode.Disposable.from(
-      vscode.window.registerCustomEditorProvider(TableEditorProvider.viewType, provider, options),
-      vscode.window.registerCustomEditorProvider(
-        TableEditorProvider.binaryViewType,
-        provider,
-        options
-      )
+    return vscode.window.registerCustomEditorProvider(
+      TableEditorProvider.viewType,
+      provider,
+      options
     );
   }
 
