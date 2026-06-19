@@ -16,7 +16,7 @@ function fakeContext(initial: Record<string, unknown> = {}) {
   } as any;
 }
 
-test('defaults to colorize all + viridis + uncentered + grouped when nothing saved', () => {
+test('defaults to colorize all + viridis + uncentered + columnwise when nothing saved', () => {
   const s = getColorizeSettings(fakeContext());
   assert.deepEqual(s, {
     colorizeNumeric: true,
@@ -25,7 +25,7 @@ test('defaults to colorize all + viridis + uncentered + grouped when nothing sav
     colorizeText: false,
     colormap: 'viridis',
     center: false,
-    columnwise: false,
+    columnwise: true,
     showMissing: true,
     showGraphs: true,
   });
@@ -59,7 +59,7 @@ test('fills in missing fields from a partial saved value', () => {
     colorizeText: false,
     colormap: 'magma',
     center: false,
-    columnwise: false,
+    columnwise: true,
     showMissing: true,
     showGraphs: false,
   });

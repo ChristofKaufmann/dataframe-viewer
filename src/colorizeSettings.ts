@@ -32,7 +32,7 @@ export function getColorizeSettings(context: vscode.ExtensionContext): ColorizeS
     colorizeText: saved.colorizeText ?? false,
     colormap: saved.colormap ?? DEFAULT_COLORMAP,
     center: saved.center ?? false,
-    columnwise: saved.columnwise ?? false,
+    columnwise: saved.columnwise ?? true,
     showMissing: saved.showMissing ?? true,
     showGraphs: saved.showGraphs ?? true,
   };
