@@ -6,6 +6,10 @@
   "publisher": "ChristofKaufmann",
   "icon": "icon/icon.png",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChristofKaufmann/vscode-data-viewer"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
