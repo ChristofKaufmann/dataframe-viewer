@@ -39,8 +39,7 @@ const refreshBtn = document.getElementById('refresh') as HTMLButtonElement;
 const colorizeToggle = document.getElementById('colorize-toggle') as HTMLButtonElement;
 const settingsBtn = document.getElementById('colorize-settings') as HTMLButtonElement;
 const colorizePanel = document.getElementById('colorize-panel')!;
-const colormapSelect = document.getElementById('colormap') as HTMLSelectElement;
-const colormapPreview = document.getElementById('colormap-preview')!;
+const colormapList = document.getElementById('colormap-list')!;
 const centerCheckbox = document.getElementById('center') as HTMLInputElement;
 const columnwiseCheckbox = document.getElementById('columnwise') as HTMLInputElement;
 const colorizeNumericCheckbox = document.getElementById('colorize-numeric') as HTMLInputElement;
@@ -84,7 +83,11 @@ const chunks = new Map<number, string[][]>();
 const colorChunks = new Map<number, (string | null)[][] | null>();
 const pendingChunks = new Set<number>();
 
-let currentColormap = colormapSelect.value;
+// The selected row is marked in the HTML (aria-selected) from the saved setting.
+let currentColormap =
+  colormapList.querySelector<HTMLElement>('.cmap-opt[aria-selected="true"]')?.dataset.cmap ??
+  colormapList.querySelector<HTMLElement>('.cmap-opt')?.dataset.cmap ??
+  'viridis';
 let currentCenter = centerCheckbox.checked;
 let currentColumnwise = columnwiseCheckbox.checked;
 let currentColorizeNumeric = colorizeNumericCheckbox.checked;
@@ -240,18 +243,73 @@ colorizeToggle.addEventListener('click', () => {
 });
 syncMasterButton();
 
-/** Paints the preview swatch for the currently selected colormap. */
-function updateColormapPreview(): void {
-  colormapPreview.style.background = steppedGradient(currentColormap);
+// Colormap picker: an inline listbox of preview swatches (CSP blocks inline
+// style=, so paint each gradient from the DOM here, keyed by data-cmap).
+const colormapOptions = (): HTMLElement[] => [
+  ...colormapList.querySelectorAll<HTMLElement>('.cmap-opt'),
+];
+for (const opt of colormapOptions()) {
+  const swatch = opt.querySelector<HTMLElement>('.cmap-swatch');
+  if (swatch && opt.dataset.cmap) {
+    swatch.style.background = steppedGradient(opt.dataset.cmap);
+  }
 }
-updateColormapPreview();
 
-// Colormap and centering both recompute colors in Python, so they reload.
-colormapSelect.addEventListener('change', () => {
-  currentColormap = colormapSelect.value;
-  updateColormapPreview();
+/** Moves the single tab stop (roving tabindex) to `opt` and focuses it. */
+function rovingFocus(opt: HTMLElement): void {
+  for (const o of colormapOptions()) {
+    o.tabIndex = o === opt ? 0 : -1;
+  }
+  opt.focus();
+}
+
+/** Commits a colormap choice: marks it selected, persists, and reloads. */
+function selectColormap(opt: HTMLElement): void {
+  const name = opt.dataset.cmap;
+  if (!name) {
+    return;
+  }
+  for (const o of colormapOptions()) {
+    const sel = o === opt;
+    o.classList.toggle('selected', sel);
+    o.setAttribute('aria-selected', String(sel));
+    o.tabIndex = sel ? 0 : -1;
+  }
+  if (name === currentColormap) {
+    return;
+  }
+  currentColormap = name;
   persistSettings();
   requestReload();
+}
+
+// Colormap and centering both recompute colors in Python, so they reload.
+colormapList.addEventListener('click', (e) => {
+  const opt = (e.target as Element).closest<HTMLElement>('.cmap-opt');
+  if (opt) {
+    selectColormap(opt);
+  }
+});
+colormapList.addEventListener('keydown', (e) => {
+  const opts = colormapOptions();
+  const cur = (document.activeElement as Element | null)?.closest<HTMLElement>('.cmap-opt');
+  const i = cur ? opts.indexOf(cur) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    rovingFocus(opts[Math.min(opts.length - 1, i + 1)] ?? opts[0]);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    rovingFocus(opts[Math.max(0, i - 1)] ?? opts[0]);
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    rovingFocus(opts[0]);
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    rovingFocus(opts[opts.length - 1]);
+  } else if ((e.key === 'Enter' || e.key === ' ') && cur) {
+    e.preventDefault();
+    selectColormap(cur);
+  }
 });
 
 centerCheckbox.addEventListener('change', () => {
@@ -270,6 +328,12 @@ columnwiseCheckbox.addEventListener('change', () => {
 function setPanelOpen(open: boolean): void {
   colorizePanel.hidden = !open;
   settingsBtn.setAttribute('aria-expanded', String(open));
+  if (open) {
+    // Bring the current colormap into view in the (scrollable) list.
+    colormapList
+      .querySelector<HTMLElement>('.cmap-opt[aria-selected="true"]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }
 }
 settingsBtn.addEventListener('click', (e) => {
   e.stopPropagation();

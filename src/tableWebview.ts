@@ -80,16 +80,25 @@ function getHtml(
   );
   const nonce = getNonce();
 
-  const colormapOptions = COLORMAP_GROUPS.map(
+  // A custom listbox (not a native <select>) so each row can show its own
+  // colormap preview swatch. The swatch gradients are painted from the DOM in
+  // main.ts (CSP blocks inline style=), keyed by data-cmap. Roving tabindex: the
+  // selected row is the one tab stop.
+  const colormapList = COLORMAP_GROUPS.map(
     (group) =>
-      `<optgroup label="${group.label}">` +
+      `<div class="cmap-group" aria-hidden="true">${group.label}</div>` +
       group.names
-        .map(
-          (name) =>
-            `<option value="${name}"${name === settings.colormap ? ' selected' : ''}>${name}</option>`
-        )
-        .join('') +
-      `</optgroup>`
+        .map((name) => {
+          const sel = name === settings.colormap;
+          return (
+            `<div class="cmap-opt${sel ? ' selected' : ''}" role="option" data-cmap="${name}"` +
+            ` aria-selected="${sel}" tabindex="${sel ? '0' : '-1'}">` +
+            `<span class="cmap-swatch" aria-hidden="true"></span>` +
+            `<span class="cmap-name">${name}</span>` +
+            `</div>`
+          );
+        })
+        .join('')
   ).join('');
 
   // The Colorize toggle is "active" when any column type is colorized.
@@ -132,13 +141,10 @@ function getHtml(
         <label class="field-check" title="Color text / unordered / boolean cells by value, matching the distribution bar">
           <input type="checkbox" id="colorize-text"${settings.colorizeText ? ' checked' : ''}> Colorize text
         </label>
-        <label class="field">
-          <span>Colormap</span>
-          <div class="colormap-row">
-            <select id="colormap">${colormapOptions}</select>
-            <span id="colormap-preview" aria-hidden="true"></span>
-          </div>
-        </label>
+        <div class="field">
+          <span id="colormap-label">Colormap</span>
+          <div id="colormap-list" role="listbox" aria-labelledby="colormap-label">${colormapList}</div>
+        </div>
         <label class="field-check" title="Make the value range symmetric around 0">
           <input type="checkbox" id="center"${settings.center ? ' checked' : ''}> Center at 0
         </label>
