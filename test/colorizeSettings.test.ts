@@ -26,7 +26,6 @@ test('defaults to colorize all + viridis + uncentered + columnwise when nothing 
     colormap: 'viridis',
     center: false,
     columnwise: true,
-    showMissing: true,
     showGraphs: true,
   });
 });
@@ -41,7 +40,6 @@ test('round-trips saved settings', async () => {
     colormap: 'plasma',
     center: true,
     columnwise: true,
-    showMissing: false,
     showGraphs: false,
   };
   await updateColorizeSettings(ctx, saved);
@@ -60,7 +58,6 @@ test('fills in missing fields from a partial saved value', () => {
     colormap: 'magma',
     center: false,
     columnwise: true,
-    showMissing: true,
     showGraphs: false,
   });
 });

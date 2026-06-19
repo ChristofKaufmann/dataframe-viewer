@@ -57,7 +57,6 @@ export function configureTableWebview(
         colormap: message.colormap,
         center: message.center,
         columnwise: message.columnwise,
-        showMissing: message.showMissing,
         showGraphs: message.showGraphs,
       });
       return;
@@ -123,8 +122,7 @@ function getHtml(
   <div id="toolbar">
     <button id="refresh" class="tbtn" title="Reload data from its source"><span class="icon">↻</span><span>Refresh</span></button>
     <button id="filter-toggle" class="tbtn" title="Filter rows" aria-expanded="false"><span class="codicon codicon-filter"></span><span>Filter</span></button>
-    <button id="stats-toggle" class="tbtn${settings.showMissing ? ' active' : ''}" title="Show missing-value counts" aria-pressed="${settings.showMissing}"><span class="icon">Σ</span><span>Missing</span></button>
-    <button id="hist-toggle" class="tbtn${settings.showGraphs ? ' active' : ''}" title="Show value distributions" aria-pressed="${settings.showGraphs}"><span class="codicon codicon-graph"></span><span>Graphs</span></button>
+    <button id="hist-toggle" class="tbtn${settings.showGraphs ? ' active' : ''}" title="Show column statistics" aria-pressed="${settings.showGraphs}"><span class="codicon codicon-graph"></span><span>Stats</span></button>
     <div id="colorize-menu">
       <button id="colorize-toggle" class="tbtn${anyColorize ? ' active' : ''}" title="Color cells by value" aria-pressed="${anyColorize}"><span class="codicon codicon-symbol-color"></span><span>Colorize</span></button>
       <button id="colorize-settings" title="Colorize settings" aria-expanded="false" aria-haspopup="true"><span class="codicon codicon-chevron-down"></span></button>

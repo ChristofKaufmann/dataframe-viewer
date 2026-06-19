@@ -112,7 +112,6 @@ export type WebviewMessage =
       colorizeDatetime: boolean;
       colorizeCategorical: boolean;
       colorizeText: boolean;
-      showMissing: boolean;
       showGraphs: boolean;
     };
 

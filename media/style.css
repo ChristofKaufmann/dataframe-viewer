@@ -64,7 +64,6 @@ body {
 
 /* Highlight a toggle button while its feature is active (filter / stats / colorize). */
 #filter-toggle.active,
-#stats-toggle.active,
 #hist-toggle.active,
 #colorize-toggle.active {
   color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
@@ -489,16 +488,14 @@ body.resizing {
   grid-auto-rows: min-content;
 }
 
-body.stats-missing #stats-row,
+/* The Graphs toggle shows the whole stats section: both the missing/available
+   bar and the distribution sub-rows. */
 body.stats-hist #stats-row {
   display: grid;
 }
 
 /* #stats-row prefix lifts specificity above the label cells' display rules. */
-body:not(.stats-missing) #stats-row .stat-missing {
-  display: none;
-}
-
+body:not(.stats-hist) #stats-row .stat-missing,
 body:not(.stats-hist) #stats-row .stat-hist {
   display: none;
 }

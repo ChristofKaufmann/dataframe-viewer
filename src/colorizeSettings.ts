@@ -1,6 +1,6 @@
 // Persisted view-UI settings, kept in the extension's global state so a choice
 // made in one view carries over to the next (and across sessions): the Colorize
-// options plus the Missing/Graphs stats-row toggles.
+// options plus the Graphs stats-section toggle.
 //
 // vscode is imported as a type only, so this module has no runtime dependency
 // on the editor host and can be unit-tested with a fake context.
@@ -15,9 +15,7 @@ export interface ColorizeSettings {
   colormap: string;
   center: boolean;
   columnwise: boolean;
-  /** Show the missing-values stats sub-row (Σ toggle). */
-  showMissing: boolean;
-  /** Show the distribution stats sub-row (Graphs toggle). */
+  /** Show the stats section — missing/available bar + distributions (Graphs toggle). */
   showGraphs: boolean;
 }
 
@@ -33,7 +31,6 @@ export function getColorizeSettings(context: vscode.ExtensionContext): ColorizeS
     colormap: saved.colormap ?? DEFAULT_COLORMAP,
     center: saved.center ?? false,
     columnwise: saved.columnwise ?? true,
-    showMissing: saved.showMissing ?? true,
     showGraphs: saved.showGraphs ?? true,
   };
 }

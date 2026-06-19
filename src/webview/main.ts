@@ -51,7 +51,6 @@ const filterToggle = document.getElementById('filter-toggle') as HTMLButtonEleme
 const filterInput = document.getElementById('filter-input') as HTMLInputElement;
 const filterClear = document.getElementById('filter-clear') as HTMLButtonElement;
 const filterError = document.getElementById('filter-error')!;
-const statsToggle = document.getElementById('stats-toggle') as HTMLButtonElement;
 const histToggle = document.getElementById('hist-toggle') as HTMLButtonElement;
 const statsRow = document.getElementById('stats-row')!;
 
@@ -96,7 +95,6 @@ let currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
 let currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
 let currentColorizeText = colorizeTextCheckbox.checked;
 // Stats-row toggles: initial (persisted) state is baked into the buttons' HTML.
-let currentShowMissing = statsToggle.classList.contains('active');
 let currentShowGraphs = histToggle.classList.contains('active');
 
 window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
@@ -191,7 +189,6 @@ function persistSettings(): void {
     colorizeDatetime: currentColorizeDatetime,
     colorizeCategorical: currentColorizeCategorical,
     colorizeText: currentColorizeText,
-    showMissing: currentShowMissing,
     showGraphs: currentShowGraphs,
   });
 }
@@ -412,7 +409,6 @@ function wireStatsToggle(
   document.body.classList.toggle(bodyClass, initial);
   btn.setAttribute('aria-pressed', String(initial));
 }
-wireStatsToggle(statsToggle, 'stats-missing', (shown) => (currentShowMissing = shown));
 wireStatsToggle(histToggle, 'stats-hist', (shown) => (currentShowGraphs = shown));
 
 /**
@@ -424,29 +420,18 @@ wireStatsToggle(histToggle, 'stats-hist', (shown) => (currentShowGraphs = shown)
 function buildStatsRow(): void {
   statsRow.replaceChildren();
   if (!columnStats) {
-    for (const [btn, cls] of [
-      [statsToggle, 'stats-missing'],
-      [histToggle, 'stats-hist'],
-    ] as const) {
-      btn.disabled = true;
-      document.body.classList.remove(cls);
-      btn.classList.remove('active');
-      btn.setAttribute('aria-pressed', 'false');
-    }
+    histToggle.disabled = true;
+    document.body.classList.remove('stats-hist');
+    histToggle.classList.remove('active');
+    histToggle.setAttribute('aria-pressed', 'false');
     return;
   }
-  statsToggle.disabled = false;
   histToggle.disabled = false;
   // Re-apply the persisted shown state, which the no-stats branch above may have
   // cleared on an earlier (empty) load.
-  for (const [btn, cls, shown] of [
-    [statsToggle, 'stats-missing', currentShowMissing],
-    [histToggle, 'stats-hist', currentShowGraphs],
-  ] as const) {
-    document.body.classList.toggle(cls, shown);
-    btn.classList.toggle('active', shown);
-    btn.setAttribute('aria-pressed', String(shown));
-  }
+  document.body.classList.toggle('stats-hist', currentShowGraphs);
+  histToggle.classList.toggle('active', currentShowGraphs);
+  histToggle.setAttribute('aria-pressed', String(currentShowGraphs));
 
   // Missing-counts sub-row.
   for (let c = 0; c < columns.length; c++) {
