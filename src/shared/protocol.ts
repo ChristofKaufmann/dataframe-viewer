@@ -24,6 +24,11 @@ export interface ColumnStat {
   /** Count of missing (NaN/NaT/None) values across all rows, before truncation. */
   missing: number;
   /**
+   * Query clauses for the missing/available split bar (click-to-filter):
+   * `available` = `col.notna()`, `missing` = `col.isna()`. Absent for the index.
+   */
+  naFilter?: { available: string; missing: string };
+  /**
    * Histogram for numeric/datetime/timedelta columns (over non-null values), or
    * absent otherwise. `edges` (length `counts.length + 1`) and `min`/`median`/
    * `max` are *numeric positions* for geometry — the value itself for numeric, or

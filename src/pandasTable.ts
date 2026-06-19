@@ -493,6 +493,9 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '        for _i in range(obj.shape[1]):',
     '            _col = obj.iloc[:, _i]',
     '            _entry = {"missing": _missing(_col)}',
+    // Quick-filter clauses for the missing/available split bar (click-to-filter).
+    '            _qc = _qcol(_col.name)',
+    '            _entry["naFilter"] = {"available": "%s.notna()" % _qc, "missing": "%s.isna()" % _qc}',
     '            _h = _hist(_col)',
     '            if _h is not None:',
     '                _h["filters"] = _hist_filters(_col, _h)',

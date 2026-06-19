@@ -8,6 +8,7 @@ import {
   histogramBin,
   histogramSvg,
   markerFraction,
+  naBar,
   segmentAt,
   stackedBarSvg,
   tickStripSvg,
@@ -130,4 +131,38 @@ test('histogramBin reads the edges and count for a bin off the nice grid', () =>
   assert.deepEqual(histogramBin(hist, 0), { lo: 0, hi: 2, count: 2 });
   assert.deepEqual(histogramBin(hist, 1), { lo: 2, hi: 4, count: 7 });
   assert.deepEqual(histogramBin(hist, 3), { lo: 6, hi: 8, count: 0 });
+});
+
+test('naBar shows a single non-clickable bar when all values are available', () => {
+  const { segments, clickable } = naBar(10, 0);
+  assert.deepEqual(segments, [{ kind: 'avail', x: 0, w: 100 }]);
+  assert.equal(clickable, false);
+});
+
+test('naBar shows a single non-clickable bar when all values are missing', () => {
+  const { segments, clickable } = naBar(0, 7);
+  assert.deepEqual(segments, [{ kind: 'missing', x: 0, w: 100 }]);
+  assert.equal(clickable, false);
+});
+
+test('naBar shows two clickable segments when both are present', () => {
+  const { segments, clickable } = naBar(75, 25);
+  assert.equal(clickable, true);
+  assert.equal(segments.length, 2);
+  assert.equal(segments[0].kind, 'avail');
+  assert.equal(segments[1].kind, 'missing');
+  // 1-unit gap between the two segments.
+  assert.ok(Math.abs(segments[1].x - (segments[0].w + 1)) < 0.01);
+});
+
+test('naBar clamps a tiny segment to a minimum width so it stays clickable', () => {
+  // 1 missing out of 1,000,001 — still gets a visible/clickable red segment.
+  const { segments, clickable } = naBar(1_000_000, 1);
+  assert.equal(clickable, true);
+  assert.ok(segments[1].w >= 12, `missing segment ${segments[1].w} should be >= 12`);
+  assert.ok(segments[0].w <= 100 - 1 - 12, 'available segment leaves room for the minimum');
+});
+
+test('naBar returns no segments for empty data', () => {
+  assert.deepEqual(naBar(0, 0), { segments: [], clickable: false });
 });

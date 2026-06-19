@@ -18,6 +18,7 @@ import {
   formatPercent,
   histogramSvg,
   markerFraction,
+  naBar,
   segmentAt,
   stackedBarSvg,
   tickStripSvg,
@@ -456,9 +457,34 @@ function buildStatsRow(): void {
       cell.title = 'Missing (NaN/NaT/None) values per column';
     } else {
       const missing = columnStats[c]?.missing ?? 0;
+      const available = Math.max(0, rowTotal - missing);
       cell.className = 'cell stat stat-missing';
       const pct = rowTotal > 0 ? formatPercent((missing / rowTotal) * 100) : '';
-      cell.textContent = `${missing.toLocaleString()} (${pct})`;
+      // Available/missing split bar above the count; clickable as a quick filter
+      // only when both segments are present (so a click maps to notna/isna).
+      const { segments, clickable } = naBar(available, missing);
+      if (segments.length) {
+        const naFilter = columnStats[c]?.naFilter;
+        const rects = segments
+          .map(
+            (s) =>
+              `<rect class="${s.kind}" data-kind="${s.kind}" x="${s.x}" y="0" width="${s.w}" height="10"/>`
+          )
+          .join('');
+        const svg = document.createElement('div');
+        svg.className = 'na-bar-wrap';
+        svg.innerHTML = `<svg class="na-bar${clickable ? ' clickable' : ''}" viewBox="0 0 100 10" preserveAspectRatio="none">${rects}</svg>`;
+        if (clickable && naFilter) {
+          for (const rect of svg.querySelectorAll<SVGElement>('rect')) {
+            rect.dataset.filter = rect.dataset.kind === 'missing' ? naFilter.missing : naFilter.available;
+          }
+        }
+        cell.appendChild(svg);
+      }
+      const num = document.createElement('div');
+      num.className = 'na-count';
+      num.textContent = `${missing.toLocaleString()} (${pct})`;
+      cell.appendChild(num);
       cell.title = `${missing.toLocaleString()} of ${rowTotal.toLocaleString()} missing${
         pct ? ` (${pct})` : ''
       }`;
@@ -665,6 +691,13 @@ statsRow.addEventListener('mouseleave', hideHistBubble);
 // bin's/value's pandas clause (built in Python with the real dtypes) and applies
 // it — same cursor→item math as the hover bubble.
 function filterFromStat(e: MouseEvent): void {
+  // Missing/available split bar: a segment carries its own notna()/isna() clause
+  // (only set when both segments are present, i.e. the bar is clickable).
+  const naRect = (e.target as Element).closest('.na-bar rect[data-filter]') as SVGElement | null;
+  if (naRect?.dataset.filter) {
+    applyFilterClause(naRect.dataset.filter);
+    return;
+  }
   // Only the bars themselves filter — not the min/median/max labels or the
   // unique-count caption below them (so those stay selectable/copyable).
   const svg = (e.target as Element).closest('svg.hist, svg.stacked') as SVGElement | null;
