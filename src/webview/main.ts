@@ -459,8 +459,12 @@ function buildStatsRow(): void {
       const missing = columnStats[c]?.missing ?? 0;
       const available = Math.max(0, rowTotal - missing);
       cell.className = 'cell stat stat-missing';
-      const pct = rowTotal > 0 ? formatPercent((missing / rowTotal) * 100) : '';
-      // Available/missing split bar above the count; clickable as a quick filter
+      const missPct = rowTotal > 0 ? formatPercent((missing / rowTotal) * 100) : '';
+      const availPct = rowTotal > 0 ? formatPercent((available / rowTotal) * 100) : '';
+      const N = rowTotal.toLocaleString();
+      const availTip = `${available.toLocaleString()} of ${N} available${availPct ? ` (${availPct})` : ''}`;
+      const missTip = `${missing.toLocaleString()} of ${N} missing${missPct ? ` (${missPct})` : ''}`;
+      // Available/missing split bar above the counts; clickable as a quick filter
       // only when both segments are present (so a click maps to notna/isna).
       const { segments, clickable } = naBar(available, missing);
       if (segments.length) {
@@ -468,7 +472,8 @@ function buildStatsRow(): void {
         const rects = segments
           .map(
             (s) =>
-              `<rect class="${s.kind}" data-kind="${s.kind}" x="${s.x}" y="0" width="${s.w}" height="10"/>`
+              `<rect class="${s.kind}" data-kind="${s.kind}" x="${s.x}" y="0" width="${s.w}" height="10">` +
+              `<title>${s.kind === 'missing' ? missTip : availTip}</title></rect>`
           )
           .join('');
         const svg = document.createElement('div');
@@ -481,13 +486,21 @@ function buildStatsRow(): void {
         }
         cell.appendChild(svg);
       }
-      const num = document.createElement('div');
-      num.className = 'na-count';
-      num.textContent = `${missing.toLocaleString()} (${pct})`;
-      cell.appendChild(num);
-      cell.title = `${missing.toLocaleString()} of ${rowTotal.toLocaleString()} missing${
-        pct ? ` (${pct})` : ''
-      }`;
+      // Counts below the bar: available % on the left, missing % on the right
+      // (just the percentage to stay compact; the absolute count is in the
+      // tooltip "n of N available/missing (P%)").
+      const counts = document.createElement('div');
+      counts.className = 'na-counts';
+      const availEl = document.createElement('span');
+      availEl.className = 'na-avail';
+      availEl.textContent = availPct;
+      availEl.title = availTip;
+      const missEl = document.createElement('span');
+      missEl.className = 'na-missing';
+      missEl.textContent = missPct;
+      missEl.title = missTip;
+      counts.append(availEl, missEl);
+      cell.appendChild(counts);
     }
     statsRow.appendChild(cell);
   }

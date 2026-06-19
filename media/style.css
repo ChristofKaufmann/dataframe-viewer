@@ -558,8 +558,19 @@ body:not(.stats-hist) #stats-row .stat-hist {
   cursor: pointer;
 }
 
-.cell.stat-missing .na-count {
-  text-align: right;
+/* Counts below the bar: available (left) and missing (right). */
+.cell.stat-missing .na-counts {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cell.stat-missing .na-counts .na-avail {
+  color: #1f77b4;
+}
+
+.cell.stat-missing .na-counts .na-missing {
+  color: #d62728;
 }
 
 /* Histogram sub-row: a bar chart over a tick strip and min/median/max labels. */
