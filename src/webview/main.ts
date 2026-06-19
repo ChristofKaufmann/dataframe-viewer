@@ -721,9 +721,20 @@ function filterFromStat(e: MouseEvent): void {
 }
 statsRow.addEventListener('click', filterFromStat);
 
-/** Opens the filter bar, sets it to `clause`, and applies it (reloads). */
+/**
+ * Adds a quick-filter `clause` to the filter bar and applies it. Appends to any
+ * existing expression with ` & ` (parenthesizing the clause if it has its own
+ * boolean operator, e.g. a histogram bin's `>= lo & < hi`); replaces an empty
+ * expression. Opens the bar so the result is visible/editable.
+ */
 function applyFilterClause(clause: string): void {
-  filterInput.value = clause;
+  const existing = filterInput.value.trim();
+  if (existing) {
+    const wrapped = /[&|]/.test(clause) ? `(${clause})` : clause;
+    filterInput.value = `${existing} & ${wrapped}`;
+  } else {
+    filterInput.value = clause;
+  }
   document.body.classList.add('filtering');
   filterToggle.setAttribute('aria-expanded', 'true');
   syncFilter();
