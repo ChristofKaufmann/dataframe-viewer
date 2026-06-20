@@ -49,6 +49,16 @@ Colorize cells and histograms with columnwise or global vmin/vmax for numeric co
 
 ![Colorize cells and histograms](images/colorize.webp)
 
+## Requirements
+
+This extension requires:
+
+- Python
+- Pandas
+- NumPy
+- Matplotlib (for colorize feature)
+- PyArrow (for `*.parquet`, `*.feather` import)
+
 ## License
 
 [MIT](LICENSE)
