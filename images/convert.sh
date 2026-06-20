@@ -1,7 +1,7 @@
 #!/bin/bash
 INFILE=$1
 END=$2   # optional: stop here (seconds or HH:MM:SS) to trim the end
-OUTFILE=${INFILE%.webm}.gif
+OUTFILE=${INFILE%.webm}.webp
 TRIM=()
 [ -n "$END" ] && TRIM=(-to "$END")
-ffmpeg -i "$INFILE" "${TRIM[@]}" -f yuv4mpegpipe - | gifski --fps 8 --quality 80 -o "$OUTFILE" -
+ffmpeg -i "$INFILE" "${TRIM[@]}" -filter:v fps=8 -compression_level 4 -quality 40 -loop 0 "$OUTFILE"

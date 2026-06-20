@@ -2,49 +2,52 @@
 
 View tabular Jupyter variables and data files.
 
-![Data Viewer with default settings](images/default-settings.png)
+![Data Viewer with default settings](images/default-settings.webp)
 
 ## Main Features
 
 - View data in a **tabular grid** with sticky index and column headers.
-- Show **dtype** and number of **missing values** per column.
 - **Sort** with multiple keys.
 - **Filter** using [Pandas' query syntax](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html).
-- Draw distribution **graphs** for each column, depending on data type:
-  - Numeric column → Histogram
-  - DateTime or TimeDelta column → Histogram
-  - Ordered Categorical column → Bar Plot
-  - String or Boolean column → Stacked Bar Plot
-- **Quick filter** data from the distribution graphs.
-- **Colorize** cells and graphs using a colormap with many settings.
+- Look at **missing value ratios** and the distribution **plots** (histogram or stacked bar).
+- **Quick filter** data using the plots.
+- **Colorize** cells and graphs.
 
 ## Usage
 
 ### View Data
 
-Load Jupyter variables, when executing a Jupyter notebook or a Python script with the interactive window. You need to grant kernel access once. You can see the dtypes, enable the missing data count and refresh the table.
+Load Jupyter variables, when executing a Jupyter notebook or a Python script with the interactive window. You need to grant kernel access once.
 
-![Load Jupyter variable with Data viewer](images/open-jupyter-variable.gif)
+![Load Jupyter variable with Data viewer](images/open-jupyter-variable.webp)
 
-Open files. *Note: Data types are not inferred from CSV or TSV files.* | View variables in debug mode.
----------------------------------------------------------------------- | -----------------------------
-![Mouse pointing at "Open in Data Viewer" in CSV file context menu](images/open-in-data-viewer.png) | ![Mouse pointing at "View Value in Data Viewer" in debug variable context menu](images/open-from-debugger.png)
+View variables in debug mode and open files. *Note: Data types are not inferred from CSV or TSV files.*
 
-### Filter
-
-Filter data using pandas query syntax.
-
-![Filter data using query syntax](images/filter.gif)
+![Left: Mouse pointing at "View Value in Data Viewer" in debug variable context menu, right: mouse pointing at "Open in Data Viewer" in CSV file context menu](images/open-from-debugger-and-file.webp)
 
 ### Sort
 
 Stable sort with multiple keys (last has priority).
 
-![Sort data using multiple columns](images/sort.gif)
+![Sort data using multiple columns](images/sort.webp)
 
-### Graphs, Quick Filter, Colorize
+### Stats
 
+Missing value ratios and distribution plots.
 
+![Missing value bars and distribution plots](images/stats.webp)
+
+### Filter
+
+Filter data using [Pandas' query syntax](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html). Add filter expressions by clicking into the plots. Multiple filters are appended with Operator `&`.
+
+![Filter data by germany and last_census dates](images/filter.webp)
+
+### Colorize
+
+Colorize cells and histograms with columnwise or global vmin/vmax for numeric columns, optionally symmetrically centered around 0.
+
+![Colorize cells and histograms](images/colorize.webp)
 
 ## License
 
