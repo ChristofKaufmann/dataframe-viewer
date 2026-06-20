@@ -10,8 +10,8 @@ import { DEFAULT_COLORMAP } from './pandasTable';
 export interface ColorizeSettings {
   colorizeNumeric: boolean;
   colorizeDatetime: boolean;
-  colorizeCategorical: boolean;
-  colorizeText: boolean;
+  colorizeOrdered: boolean;
+  colorizeUnordered: boolean;
   colormap: string;
   center: boolean;
   columnwise: boolean;
@@ -26,8 +26,8 @@ export function getColorizeSettings(context: vscode.ExtensionContext): ColorizeS
   return {
     colorizeNumeric: saved.colorizeNumeric ?? true,
     colorizeDatetime: saved.colorizeDatetime ?? true,
-    colorizeCategorical: saved.colorizeCategorical ?? true,
-    colorizeText: saved.colorizeText ?? false,
+    colorizeOrdered: saved.colorizeOrdered ?? true,
+    colorizeUnordered: saved.colorizeUnordered ?? false,
     colormap: saved.colormap ?? DEFAULT_COLORMAP,
     center: saved.center ?? false,
     columnwise: saved.columnwise ?? true,

@@ -41,9 +41,9 @@ export interface LoadOptions {
   /** Color datetime/timedelta columns. */
   colorizeDatetime?: boolean;
   /** Color ordered categorical columns by rank. */
-  colorizeCategorical?: boolean;
+  colorizeOrdered?: boolean;
   /** Color unordered/text/bool cells by value (matching the stacked bar). */
-  colorizeText?: boolean;
+  colorizeUnordered?: boolean;
   /** Multi-column sort keys (primary first); empty/undefined = unsorted. */
   sort?: SortKey[];
   /** pandas query filter expression; empty/undefined = unfiltered. */
@@ -108,8 +108,8 @@ export function createTableHost(deps: TableHostDeps): (message: WebviewMessage) 
           columnwise: message.columnwise,
           colorizeNumeric: message.colorizeNumeric,
           colorizeDatetime: message.colorizeDatetime,
-          colorizeCategorical: message.colorizeCategorical,
-          colorizeText: message.colorizeText,
+          colorizeOrdered: message.colorizeOrdered,
+          colorizeUnordered: message.colorizeUnordered,
           sort: message.sort,
           filter: message.filter,
         });

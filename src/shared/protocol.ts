@@ -93,8 +93,8 @@ export interface ColorizeChoices {
   columnwise?: boolean;
   colorizeNumeric?: boolean;
   colorizeDatetime?: boolean;
-  colorizeCategorical?: boolean;
-  colorizeText?: boolean;
+  colorizeOrdered?: boolean;
+  colorizeUnordered?: boolean;
 }
 
 export type WebviewMessage =
@@ -110,8 +110,8 @@ export type WebviewMessage =
       columnwise: boolean;
       colorizeNumeric: boolean;
       colorizeDatetime: boolean;
-      colorizeCategorical: boolean;
-      colorizeText: boolean;
+      colorizeOrdered: boolean;
+      colorizeUnordered: boolean;
       showGraphs: boolean;
     };
 

@@ -45,8 +45,8 @@ const centerCheckbox = document.getElementById('center') as HTMLInputElement;
 const columnwiseCheckbox = document.getElementById('columnwise') as HTMLInputElement;
 const colorizeNumericCheckbox = document.getElementById('colorize-numeric') as HTMLInputElement;
 const colorizeDatetimeCheckbox = document.getElementById('colorize-datetime') as HTMLInputElement;
-const colorizeCategoricalCheckbox = document.getElementById('colorize-categorical') as HTMLInputElement;
-const colorizeTextCheckbox = document.getElementById('colorize-text') as HTMLInputElement;
+const colorizeOrderedCheckbox = document.getElementById('colorize-ordered') as HTMLInputElement;
+const colorizeUnorderedCheckbox = document.getElementById('colorize-unordered') as HTMLInputElement;
 const filterToggle = document.getElementById('filter-toggle') as HTMLButtonElement;
 const filterInput = document.getElementById('filter-input') as HTMLInputElement;
 const filterClear = document.getElementById('filter-clear') as HTMLButtonElement;
@@ -92,8 +92,8 @@ let currentCenter = centerCheckbox.checked;
 let currentColumnwise = columnwiseCheckbox.checked;
 let currentColorizeNumeric = colorizeNumericCheckbox.checked;
 let currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
-let currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
-let currentColorizeText = colorizeTextCheckbox.checked;
+let currentColorizeCategorical = colorizeOrderedCheckbox.checked;
+let currentColorizeText = colorizeUnorderedCheckbox.checked;
 // Stats-row toggles: initial (persisted) state is baked into the buttons' HTML.
 let currentShowGraphs = histToggle.classList.contains('active');
 
@@ -165,8 +165,8 @@ function requestReload(): void {
     columnwise: currentColumnwise,
     colorizeNumeric: currentColorizeNumeric,
     colorizeDatetime: currentColorizeDatetime,
-    colorizeCategorical: currentColorizeCategorical,
-    colorizeText: currentColorizeText,
+    colorizeOrdered: currentColorizeCategorical,
+    colorizeUnordered: currentColorizeText,
     sort: sortKeys,
     filter: currentFilter,
   });
@@ -187,8 +187,8 @@ function persistSettings(): void {
     columnwise: currentColumnwise,
     colorizeNumeric: currentColorizeNumeric,
     colorizeDatetime: currentColorizeDatetime,
-    colorizeCategorical: currentColorizeCategorical,
-    colorizeText: currentColorizeText,
+    colorizeOrdered: currentColorizeCategorical,
+    colorizeUnordered: currentColorizeText,
     showGraphs: currentShowGraphs,
   });
 }
@@ -208,16 +208,16 @@ function syncMasterButton(): void {
 function onColorizeChanged(): void {
   currentColorizeNumeric = colorizeNumericCheckbox.checked;
   currentColorizeDatetime = colorizeDatetimeCheckbox.checked;
-  currentColorizeCategorical = colorizeCategoricalCheckbox.checked;
-  currentColorizeText = colorizeTextCheckbox.checked;
+  currentColorizeCategorical = colorizeOrderedCheckbox.checked;
+  currentColorizeText = colorizeUnorderedCheckbox.checked;
   syncMasterButton();
   persistSettings();
   requestReload();
 }
 colorizeNumericCheckbox.addEventListener('change', onColorizeChanged);
 colorizeDatetimeCheckbox.addEventListener('change', onColorizeChanged);
-colorizeCategoricalCheckbox.addEventListener('change', onColorizeChanged);
-colorizeTextCheckbox.addEventListener('change', onColorizeChanged);
+colorizeOrderedCheckbox.addEventListener('change', onColorizeChanged);
+colorizeUnorderedCheckbox.addEventListener('change', onColorizeChanged);
 
 // Master toggle: turn everything on if anything is off, else turn all off.
 colorizeToggle.addEventListener('click', () => {
@@ -233,8 +233,8 @@ colorizeToggle.addEventListener('click', () => {
   currentColorizeText = next;
   colorizeNumericCheckbox.checked = next;
   colorizeDatetimeCheckbox.checked = next;
-  colorizeCategoricalCheckbox.checked = next;
-  colorizeTextCheckbox.checked = next;
+  colorizeOrderedCheckbox.checked = next;
+  colorizeUnorderedCheckbox.checked = next;
   syncMasterButton();
   persistSettings();
   requestReload();
@@ -990,8 +990,8 @@ vscode.postMessage({
   columnwise: currentColumnwise,
   colorizeNumeric: currentColorizeNumeric,
   colorizeDatetime: currentColorizeDatetime,
-  colorizeCategorical: currentColorizeCategorical,
-  colorizeText: currentColorizeText,
+  colorizeOrdered: currentColorizeCategorical,
+  colorizeUnordered: currentColorizeText,
   sort: sortKeys,
   filter: currentFilter,
 });

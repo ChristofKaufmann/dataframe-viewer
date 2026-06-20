@@ -21,8 +21,8 @@ test('defaults to colorize all + viridis + uncentered + columnwise when nothing 
   assert.deepEqual(s, {
     colorizeNumeric: true,
     colorizeDatetime: true,
-    colorizeCategorical: true,
-    colorizeText: false,
+    colorizeOrdered: true,
+    colorizeUnordered: false,
     colormap: 'viridis',
     center: false,
     columnwise: true,
@@ -35,8 +35,8 @@ test('round-trips saved settings', async () => {
   const saved = {
     colorizeNumeric: false,
     colorizeDatetime: true,
-    colorizeCategorical: false,
-    colorizeText: false,
+    colorizeOrdered: false,
+    colorizeUnordered: false,
     colormap: 'plasma',
     center: true,
     columnwise: true,
@@ -53,8 +53,8 @@ test('fills in missing fields from a partial saved value', () => {
   assert.deepEqual(getColorizeSettings(ctx), {
     colorizeNumeric: true,
     colorizeDatetime: false,
-    colorizeCategorical: true,
-    colorizeText: false,
+    colorizeOrdered: true,
+    colorizeUnordered: false,
     colormap: 'magma',
     center: false,
     columnwise: true,

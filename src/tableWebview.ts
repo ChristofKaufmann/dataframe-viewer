@@ -52,8 +52,8 @@ export function configureTableWebview(
       void updateColorizeSettings(context, {
         colorizeNumeric: message.colorizeNumeric,
         colorizeDatetime: message.colorizeDatetime,
-        colorizeCategorical: message.colorizeCategorical,
-        colorizeText: message.colorizeText,
+        colorizeOrdered: message.colorizeOrdered,
+        colorizeUnordered: message.colorizeUnordered,
         colormap: message.colormap,
         center: message.center,
         columnwise: message.columnwise,
@@ -104,8 +104,8 @@ function getHtml(
   const anyColorize =
     settings.colorizeNumeric ||
     settings.colorizeDatetime ||
-    settings.colorizeCategorical ||
-    settings.colorizeText;
+    settings.colorizeOrdered ||
+    settings.colorizeUnordered;
 
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -130,14 +130,14 @@ function getHtml(
         <label class="field-check" title="Color numeric columns">
           <input type="checkbox" id="colorize-numeric"${settings.colorizeNumeric ? ' checked' : ''}> Colorize numeric
         </label>
-        <label class="field-check" title="Color datetime columns by their timestamp">
+        <label class="field-check" title="Color datetime and timedelta columns">
           <input type="checkbox" id="colorize-datetime"${settings.colorizeDatetime ? ' checked' : ''}> Colorize datetime
         </label>
         <label class="field-check" title="Color ordered categorical columns by rank">
-          <input type="checkbox" id="colorize-categorical"${settings.colorizeCategorical ? ' checked' : ''}> Colorize categorical
+          <input type="checkbox" id="colorize-ordered"${settings.colorizeOrdered ? ' checked' : ''}> Colorize ordered
         </label>
-        <label class="field-check" title="Color text / unordered / boolean cells by value, matching the distribution bar">
-          <input type="checkbox" id="colorize-text"${settings.colorizeText ? ' checked' : ''}> Colorize text
+        <label class="field-check" title="Color unordered columns (text, unordered categorical, boolean) by value">
+          <input type="checkbox" id="colorize-unordered"${settings.colorizeUnordered ? ' checked' : ''}> Colorize unordered
         </label>
         <div class="field">
           <span id="colormap-label">Colormap</span>

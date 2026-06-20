@@ -170,11 +170,11 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(buildDumpCode('x', { columnwise: true }), /_columnwise = True/);
   assert.match(buildDumpCode('x', { colorizeNumeric: false }), /_do_num = False/);
   assert.match(buildDumpCode('x', { colorizeDatetime: false }), /_do_dt = False/);
-  assert.match(buildDumpCode('x', { colorizeCategorical: false }), /_do_cat = False/);
+  assert.match(buildDumpCode('x', { colorizeOrdered: false }), /_do_ord = False/);
   // Defaults: all column types are colorized.
   assert.match(code, /_do_num = True/);
   assert.match(code, /_do_dt = True/);
-  assert.match(code, /_do_cat = True/);
+  assert.match(code, /_do_ord = True/);
   // Datetime columns are colored from their epoch values (separate group).
   assert.match(code, /_np\.isnat/);
   assert.match(code, /_hi = max\(abs\(_lo\), abs\(_hi\)\)/);
@@ -238,7 +238,7 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(buildDumpCode('x', { colorizeNumeric: false }), /_do_num = False/);
   // Ordered-categorical bars are likewise tinted only when categorical Colorize is
   // on (the stacked-bar segments stay colored — a single-color bar is unreadable).
-  assert.match(code, /_colors = None\n.*if _do_cat:\n.*try:/);
+  assert.match(code, /_colors = None\n.*if _do_ord:\n.*try:/);
   // center/columnwise are injected into the stats block too (not just the colors
   // block), so the histogram range tracks the cell-coloring range — both appear.
   const centered = buildDumpCode('x', { center: true, columnwise: true });
@@ -279,10 +279,10 @@ test('buildDumpCode embeds the expression and the index-name logic', () => {
   assert.match(code, /_entry\["segments"\] = _nominfo\[_i\]\["segments"\]/);
   // Click-to-filter: a `col == value` clause per kept value, null for "(other)".
   assert.match(code, /_fl = \["%s == %s" % \(_q, _lit\(_vc\.index\[_k\]\)\) for _k in range\(_keep\)\] \+ \(\[None\] if _other > 0 else \[\]\)/);
-  // Text cell coloring: gated by _do_text (off by default), cells map via vmap,
+  // Text cell coloring: gated by _do_unord (off by default), cells map via vmap,
   // tail -> gray.
-  assert.match(buildDumpCode('x', { colorizeText: true }), /_do_text = True/);
-  assert.match(code, /_do_text = False/);
+  assert.match(buildDumpCode('x', { colorizeUnordered: true }), /_do_unord = True/);
+  assert.match(code, /_do_unord = False/);
   assert.match(code, /_vm\.get\(str\(_v\), "#888888"\)/);
   // The whole filter-hint example is built in Python (real dtypes). It ships as
   // `filterHint` and the webview just wraps it.

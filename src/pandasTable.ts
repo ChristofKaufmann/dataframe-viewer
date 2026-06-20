@@ -60,9 +60,9 @@ export interface DumpOptions {
   /** Color datetime/timedelta columns by their timestamp (default true). */
   colorizeDatetime?: boolean;
   /** Color ordered categorical columns by their rank (default true). */
-  colorizeCategorical?: boolean;
+  colorizeOrdered?: boolean;
   /** Color unordered/text/bool cells by value, matching the stacked bar (default false). */
-  colorizeText?: boolean;
+  colorizeUnordered?: boolean;
   /** Multi-column sort keys (primary first); columns are data-column positions, -1 = index. */
   sort?: SortKey[];
   /** A pandas `DataFrame.query` expression; empty = no filter. */
@@ -91,8 +91,8 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
   const columnwise = options.columnwise ?? false;
   const colorizeNumeric = options.colorizeNumeric ?? true;
   const colorizeDatetime = options.colorizeDatetime ?? true;
-  const colorizeCategorical = options.colorizeCategorical ?? true;
-  const colorizeText = options.colorizeText ?? false;
+  const colorizeOrdered = options.colorizeOrdered ?? true;
+  const colorizeUnordered = options.colorizeUnordered ?? false;
   // Sort keys become a Python list of (position, descending) tuples (-1 = the
   // index). Filter to safe integers so the literal can't be anything but
   // numbers/bools.
@@ -302,7 +302,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     `        _columnwise = ${columnwise ? 'True' : 'False'}`,
     `        _do_num = ${colorizeNumeric ? 'True' : 'False'}`,
     `        _do_dt = ${colorizeDatetime ? 'True' : 'False'}`,
-    `        _do_cat = ${colorizeCategorical ? 'True' : 'False'}`,
+    `        _do_ord = ${colorizeOrdered ? 'True' : 'False'}`,
     '        def _missing(_x):',
     '            try:',
     '                return int(pd.isna(_x).sum())',
@@ -449,7 +449,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     // Tint the bars only when the categorical Colorize toggle is on, so turning
     // Colorize off leaves them in the default single fill (like the cells and the
     // numeric/datetime histograms).
-    '                if _do_cat:',
+    '                if _do_ord:',
     '                  try:',
     '                    import matplotlib as _mpl',
     `                    _cm = _mpl.colormaps[${JSON.stringify(cmap)}]`,
@@ -635,8 +635,8 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     `        _columnwise = ${columnwise ? 'True' : 'False'}`,
     `        _do_num = ${colorizeNumeric ? 'True' : 'False'}`,
     `        _do_dt = ${colorizeDatetime ? 'True' : 'False'}`,
-    `        _do_cat = ${colorizeCategorical ? 'True' : 'False'}`,
-    `        _do_text = ${colorizeText ? 'True' : 'False'}`,
+    `        _do_ord = ${colorizeOrdered ? 'True' : 'False'}`,
+    `        _do_unord = ${colorizeUnordered ? 'True' : 'False'}`,
     '        _ncols, _nrows = _raw.shape[1], _raw.shape[0]',
     '        _vals = [None] * _ncols',
     '        _grp = [None] * _ncols',
@@ -652,7 +652,7 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     '                _f[_np.isnat(_a)] = _np.nan',
     '                _vals[_i] = _f',
     '                _grp[_i] = "datetime" if pd.api.types.is_datetime64_any_dtype(_c) else "timedelta"',
-    '            elif _do_cat and isinstance(_c.dtype, pd.CategoricalDtype) and _c.dtype.ordered:',
+    '            elif _do_ord and isinstance(_c.dtype, pd.CategoricalDtype) and _c.dtype.ordered:',
     '                _codes = _c.cat.codes.to_numpy().astype("float64")',
     '                _codes[_codes < 0] = _np.nan',
     '                _vals[_i] = _codes',
@@ -668,8 +668,8 @@ export function buildDumpCode(objExpr: string, options: DumpOptions = {}): strin
     // Unordered/text/bool columns are colored per value from the stacked bar\'s
     // palette (_nominfo[i]["vmap"]); tail values not in the map get the same gray
     // as the bar\'s "(other)". NaN/NaT stays uncolored. Only when a palette exists
-    // (matplotlib present) and _do_text is on.
-    '        _text_idx = [_i for _i in range(_ncols) if _do_text and _nominfo and _i < len(_nominfo) and _nominfo[_i] and _nominfo[_i]["vmap"]] if _nominfo else []',
+    // (matplotlib present) and _do_unord is on.
+    '        _text_idx = [_i for _i in range(_ncols) if _do_unord and _nominfo and _i < len(_nominfo) and _nominfo[_i] and _nominfo[_i]["vmap"]] if _nominfo else []',
     '        if _nrows and (any(_g is not None for _g in _grp) or _text_idx):',
     '            _cols = [[None] * _nrows for _ in range(_ncols)]',
     '            for _i in _text_idx:',
