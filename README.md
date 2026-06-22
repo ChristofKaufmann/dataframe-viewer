@@ -53,11 +53,14 @@ Colorize cells and histograms with columnwise or global vmin/vmax for numeric co
 
 This extension requires:
 
-- Python
-- Pandas
-- NumPy
-- Matplotlib (for colorize feature)
-- PyArrow (for `*.parquet`, `*.feather` import)
+- Python with
+  - Pandas
+  - NumPy
+  - Matplotlib (for colorize feature)
+  - PyArrow (for `*.parquet`, `*.feather` import)
+- VS Code extensions
+  - Python
+  - Jupyter
 
 ## License
 
