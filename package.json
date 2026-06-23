@@ -10,6 +10,10 @@
     "type": "git",
     "url": "https://github.com/ChristofKaufmann/vscode-data-viewer"
   },
+  "galleryBanner": {
+    "color": "#1f2021",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
