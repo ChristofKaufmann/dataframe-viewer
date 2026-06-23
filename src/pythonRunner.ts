@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import type { PythonExtension } from '@vscode/python-extension';
 
-const log = vscode.window.createOutputChannel('Data Viewer');
+// A LogOutputChannel (vs a plain channel) gives timestamped, level-tagged lines
+// and respects the user's log-level filter in the Output view.
+const log = vscode.window.createOutputChannel('Data Viewer', { log: true });
 
 /** A Python failure the user can likely fix by picking another interpreter. */
 export class PythonEnvironmentError extends Error {
@@ -27,17 +29,17 @@ async function getPythonPath(resource?: vscode.Uri): Promise<string> {
       const resolved = await api.environments.resolveEnvironment(envPath);
       const executable = resolved?.executable.uri?.fsPath ?? envPath.path;
       if (executable) {
-        log.appendLine(`Using interpreter from Python extension: ${executable}`);
+        log.info(`Using interpreter from Python extension: ${executable}`);
         return executable;
       }
-      log.appendLine(`Python extension returned no executable for "${envPath.path}".`);
+      log.warn(`Python extension returned no executable for "${envPath.path}".`);
     } else {
-      log.appendLine('Python extension (ms-python.python) not found.');
+      log.info('Python extension (ms-python.python) not found.');
     }
   } catch (err) {
-    log.appendLine(`Python extension lookup failed: ${err instanceof Error ? err.message : err}`);
+    log.warn(`Python extension lookup failed: ${err instanceof Error ? err.message : err}`);
   }
-  log.appendLine('Falling back to "python3" on PATH.');
+  log.info('Falling back to "python3" on PATH.');
   return 'python3';
 }
 
@@ -88,7 +90,7 @@ export async function runPythonScript(
           )
         );
       } else {
-        log.appendLine(`Python error (${python}):\n${stderr.trim()}`);
+        log.error(`Python error (${python}):\n${stderr.trim()}`);
         const lines = stderr.trim().split('\n');
         reject(new Error(lines.slice(-3).join('\n') || `Python ("${python}") exited with an error.`));
       }
