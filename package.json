@@ -102,7 +102,7 @@
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^24.13.2",
     "@types/vscode": "^1.85.0",
     "@vscode/codicons": "^0.0.45",
     "@vscode/jupyter-extension": "^1.1.1",
