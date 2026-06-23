@@ -16,15 +16,15 @@ Webview (`src/webview/`): `main.ts` (virtualized table, DOM glue, *not* unit-tes
 
 ## Data flow
 
-```text
-file      → tableEditorProvider.loadData ─┐
-variable  → jupyterVariableViewer ────────┤─ buildDumpCode → run Python → JSON payload
-debugger  → openDebugVariable (DAP) ──────┘                                   │
-                                                                  parsePayload + toTable
-                                                                              │
-                                                              TableData (host, full rows)
-                                                                              │  chunked
-                                                         createTableHost ⇄ webview/main.ts
+```mermaid
+flowchart TD
+    file["file · tableEditorProvider.loadData"] --> dump
+    var["variable · jupyterVariableViewer"] --> dump
+    dbg["debugger · openDebugVariable (DAP)"] --> dump
+    dump["buildDumpCode → run Python → JSON payload"] --> parse["parsePayload + toTable"]
+    parse --> data["TableData (host holds the full rows)"]
+    data --> host["createTableHost"]
+    host <-->|row chunks| web["webview/main.ts"]
 ```
 
 The host holds the **full** parsed rows; the webview gets only `CHUNK_SIZE` (500) rows at a time plus a small `init` sample. Don't ship whole datasets across the boundary. `createTableHost` is deliberately **vscode-free** so it's unit-testable.
